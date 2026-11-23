@@ -1,0 +1,314 @@
+
+/* =========================================
+   ¿QUÉ QUEDA? — Pantalla de integrantes
+   ========================================= */
+
+.qq-members-page {
+    gap: 22px;
+}
+
+.qq-members-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.qq-members-summary h2 {
+    margin: 7px 0;
+    color: #26352c;
+    font-size: 1.35rem;
+}
+
+.qq-members-summary p,
+.qq-invite-content p {
+    margin: 0;
+    color: #718078;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.qq-members-count {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #f1f6f1;
+}
+
+.qq-members-count-icon,
+.qq-invite-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #e6f1e8;
+    color: #456e50;
+    font-size: 1.3rem;
+}
+
+.qq-members-count div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.qq-members-count strong {
+    color: #365b40;
+    font-size: 0.85rem;
+}
+
+.qq-members-count span:last-child {
+    color: #718078;
+    font-size: 0.75rem;
+}
+
+.qq-invite-panel {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.qq-invite-content {
+    flex: 1;
+}
+
+.qq-invite-content h2 {
+    margin: 0 0 5px;
+    color: #26352c;
+    font-size: 1rem;
+}
+
+/* Adaptación a dispositivos móviles. */
+
+@media (max-width: 640px) {
+    .qq-members-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .qq-invite-panel {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .qq-invite-panel .qq-button {
+        width: 100%;
+    }
+}
+/* =========================================
+   Listado de integrantes
+   ========================================= */
+
+.qq-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.qq-member-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid #e3eae3;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.qq-member-avatar {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #e6f1e8;
+    color: #456e50;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.qq-member-info {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.qq-member-info strong {
+    color: #26352c;
+    font-size: 0.9rem;
+}
+
+.qq-member-info span {
+    color: #718078;
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.qq-member-role {
+    flex-shrink: 0;
+}
+
+.qq-member-badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #e6f1e8;
+    color: #456e50;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .qq-member-item {
+        flex-wrap: wrap;
+    }
+
+    .qq-member-role {
+        width: 100%;
+        padding-left: 56px;
+    }
+}
+
+/* =========================================
+   Resultado de invitación
+   ========================================= */
+
+.qq-invitation-result {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.qq-invitation-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.qq-invitation-heading h2 {
+    margin: 7px 0;
+    color: #26352c;
+    font-size: 1.15rem;
+}
+
+.qq-invitation-heading p {
+    margin: 0;
+    color: #718078;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.qq-invitation-status {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: #e6f1e8;
+    color: #456e50;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.qq-invitation-details {
+    display: flex;
+    gap: 40px;
+    padding: 14px;
+    border-radius: 9px;
+    background: #f5f8f5;
+}
+
+.qq-invitation-details div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.qq-invitation-details strong,
+.qq-invitation-code > span {
+    color: #718078;
+    font-size: 0.75rem;
+}
+
+.qq-invitation-details span {
+    color: #26352c;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.qq-invitation-code {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.qq-invitation-code strong {
+    padding: 12px;
+    border: 1px solid #e3eae3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #456e50;
+    font-size: 0.8rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+
+.qq-invitation-message {
+    color: #a95757;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+    .qq-invitation-heading {
+        flex-direction: column;
+    }
+
+    .qq-invitation-details {
+        flex-direction: column;
+        gap: 14px;
+    }
+}
+/* Acciones para compartir invitaciones */
+.qq-invitation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.qq-invitation-actions button {
+    min-width: 150px;
+}
+
+.qq-button-secondary {
+    padding: 10px 18px;
+    border: 1px solid #456e50;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #456e50;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.qq-button-secondary:hover {
+    background: #f1f6f1;
+}
+
+@media (max-width: 520px) {
+    .qq-invitation-actions {
+        flex-direction: column;
+    }
+
+    .qq-invitation-actions button {
+        width: 100%;
+    }
+}

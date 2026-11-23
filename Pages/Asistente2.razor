@@ -1,0 +1,238 @@
+
+@page "/asistente2"
+@using System.Net.Http.Json
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Web
+@inject HttpClient Http
+@inject IConfiguration Configuration
+
+<PageTitle>Asistente IA 2 | ¿Qué Queda?</PageTitle>
+
+<div class="card qq-assistant-card">
+
+    <div class="qq-assistant-heading">
+        <div class="qq-assistant-icon">✳</div>
+        <div>
+            <h2>Asistente IA 2</h2>
+            <p>Prueba de comunicación con Webhook.</p>
+        </div>
+    </div>
+
+    <div class="qq-chat">
+
+        <div class="qq-chat-message qq-chat-message-assistant">
+            <span class="qq-chat-message-label">ASISTENTE IA</span>
+            <p>¡Hola! Soy el asistente de prueba. Estoy conectado al nuevo Webhook.</p>
+        </div>
+
+        @foreach (var mensaje in mensajes)
+        {
+            <div class="qq-chat-message @(mensaje.EsUsuario
+                ? "qq-chat-message-user"
+                : "qq-chat-message-assistant")">
+
+                @if (!mensaje.EsUsuario)
+                {
+                    <span class="qq-chat-message-label">ASISTENTE IA</span>
+                }
+
+                <p>@mensaje.Texto</p>
+            </div>
+        }
+
+        @if (enviando)
+        {
+            <div class="qq-chat-message qq-chat-message-assistant">
+                <span class="qq-chat-message-label">ASISTENTE IA</span>
+                <div class="qq-typing">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        }
+
+        <div @ref="chatEnd"></div>
+
+    </div>
+
+    <div class="qq-chat-suggestions">
+        <span class="qq-chat-suggestions-label">PRUEBA CON:</span>
+
+        <button class="qq-chat-suggestion"
+                @onclick='() => Enviar("Hola")'
+                disabled="@enviando">
+            Hola
+        </button>
+
+        <button class="qq-chat-suggestion"
+                @onclick='() => Enviar("¿Cómo estás?")'
+                disabled="@enviando">
+            ¿Cómo estás?
+        </button>
+    </div>
+
+    <div class="qq-chat-composer">
+
+        <textarea @bind="texto"
+                  @bind:event="oninput"
+                  @onkeydown="ManejarTecla"
+                  placeholder="Escribe un mensaje..."
+                  rows="2"
+                  disabled="@enviando"></textarea>
+
+        <button class="qq-chat-send"
+                @onclick="EnviarMensaje"
+                disabled="@(enviando || string.IsNullOrWhiteSpace(texto))">
+            @(enviando ? "…" : "↑")
+        </button>
+
+    </div>
+
+    <div class="qq-chat-status">
+        <span class="qq-chat-status-dot"></span>
+        @estado
+    </div>
+
+</div>
+
+@code {
+
+    private string WebhookUrl =>
+    Configuration["N8N:WebhookTunnelUrl"] ?? "";
+
+    private string texto = "";
+    private string estado = "Preparado para probar el Webhook.";
+    private bool enviando = false;
+
+    private ElementReference chatEnd;
+
+    private List<MensajePrueba> mensajes = new();
+
+    private class MensajePrueba
+    {
+        public string Texto { get; set; } = "";
+        public bool EsUsuario { get; set; }
+    }
+
+    private async Task EnviarMensaje()
+    {
+        await Enviar(texto);
+    }
+
+    private async Task Enviar(string contenido)
+    {
+        if (string.IsNullOrWhiteSpace(contenido) || enviando)
+            return;
+
+        contenido = contenido.Trim();
+        texto = "";
+
+        mensajes.Add(new MensajePrueba
+        {
+            Texto = contenido,
+            EsUsuario = true
+        });
+
+        enviando = true;
+        estado = "Enviando mensaje al Webhook...";
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(WebhookUrl))
+                throw new Exception("No está configurada la URL del Webhook.");
+
+            // Primera prueba: solamente enviamos el mensaje.
+            var datos = new
+            {
+                chatInput = contenido
+            };
+
+            using var respuesta = await Http.PostAsJsonAsync(
+                WebhookUrl,
+                datos
+            );
+
+            respuesta.EnsureSuccessStatusCode();
+
+            using var documento = await JsonDocument.ParseAsync(
+                await respuesta.Content.ReadAsStreamAsync()
+            );
+
+            string respuestaIA = BuscarRespuesta(documento.RootElement);
+
+            if (string.IsNullOrWhiteSpace(respuestaIA))
+                throw new Exception("El Webhook no devolvió una respuesta.");
+
+            mensajes.Add(new MensajePrueba
+            {
+                Texto = respuestaIA,
+                EsUsuario = false
+            });
+
+            estado = "Webhook conectado correctamente.";
+        }
+        catch (Exception ex)
+        {
+            mensajes.Add(new MensajePrueba
+            {
+                Texto = "Error de comunicación: " + ex.Message,
+                EsUsuario = false
+            });
+
+            estado = "Error de conexión con el Webhook.";
+        }
+        finally
+        {
+            enviando = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string BuscarRespuesta(JsonElement elemento)
+    {
+        if (elemento.ValueKind == JsonValueKind.String)
+            return elemento.GetString() ?? "";
+
+        if (elemento.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in elemento.EnumerateArray())
+            {
+                string resultado = BuscarRespuesta(item);
+
+                if (!string.IsNullOrWhiteSpace(resultado))
+                    return resultado;
+            }
+        }
+
+        if (elemento.ValueKind == JsonValueKind.Object)
+        {
+            string[] propiedades =
+            {
+                "output",
+                "text",
+                "response",
+                "message"
+            };
+
+            foreach (string propiedad in propiedades)
+            {
+                if (elemento.TryGetProperty(propiedad, out var valor))
+                {
+                    string resultado = BuscarRespuesta(valor);
+
+                    if (!string.IsNullOrWhiteSpace(resultado))
+                        return resultado;
+                }
+            }
+        }
+
+        return "";
+    }
+
+    private async Task ManejarTecla(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await EnviarMensaje();
+    }
+}

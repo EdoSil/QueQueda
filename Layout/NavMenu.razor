@@ -1,0 +1,168 @@
+﻿@using QueQueda.Client.Services
+@implements IDisposable
+@inject AuthService Auth
+
+<div class="qq-nav-header">
+    <a class="qq-nav-brand" href="/">
+        <img class="qq-nav-brand-icon"
+            src="icon-192.png"
+            alt="¿Qué Queda?" />
+
+        <span>¿Qué Queda?</span>
+    </a>
+
+    <button type="button"
+            class="qq-nav-toggle"
+            aria-label="Abrir o cerrar menú"
+            aria-expanded="@(!collapseNavMenu)"
+            @onclick="ToggleNavMenu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+</div>
+
+<div class="@($"qq-nav-scrollable {(collapseNavMenu ? "collapse" : "show")}")">
+    <nav class="qq-nav-list" aria-label="Navegación principal">
+
+        <!-- Inicio -->
+        <NavLink class="qq-nav-link"
+                 href="/"
+                 Match="NavLinkMatch.All">
+            <span class="qq-nav-icon" aria-hidden="true">⌂</span>
+            <span>Inicio</span>
+        </NavLink>
+
+        <!-- Mi hogar -->
+        <button type="button"
+                class="qq-nav-link qq-nav-group-toggle"
+                aria-expanded="@_hogarExpandido"
+                @onclick="ToggleHogar">
+            <span class="qq-nav-icon" aria-hidden="true">⌂</span>
+            <span>Mi hogar</span>
+            <span class="qq-nav-chevron">@(_hogarExpandido ? "⌄" : "›")</span>
+        </button>
+
+        @if (_hogarExpandido)
+        {
+            <div class="qq-nav-submenu">
+
+                <NavLink class="qq-nav-sub-link"
+                         href="/"
+                         Match="NavLinkMatch.All">
+                    Resumen del hogar
+                </NavLink>
+
+                <NavLink class="qq-nav-sub-link"
+                         href="/hogar/integrantes">
+                    Integrantes
+                </NavLink>
+
+                <NavLink class="qq-nav-sub-link"
+                         href="/hogar/invitaciones">
+                    Invitaciones
+                </NavLink>
+
+                <NavLink class="qq-nav-sub-link"
+                         href="/seleccionar-hogar">
+                    Cambiar de hogar
+                </NavLink>
+
+            </div>
+        }
+
+        <!-- Despensa -->
+        <NavLink class="qq-nav-link"
+                 href="/productos">
+            <span class="qq-nav-icon" aria-hidden="true">▤</span>
+            <span>Productos</span>
+        </NavLink>
+
+        <NavLink class="qq-nav-link"
+                 href="/inventario">
+            <span class="qq-nav-icon" aria-hidden="true">▦</span>
+            <span>Inventario</span>
+        </NavLink>
+
+        <NavLink class="qq-nav-link"
+                 href="/listas-compra">
+            <span class="qq-nav-icon" aria-hidden="true">☷</span>
+            <span>Lista de compras</span>
+        </NavLink>
+
+        <!-- Historial independiente del hogar. -->
+        <NavLink class="qq-nav-link"
+                href="/historial-movimientos">
+            <span class="qq-nav-icon" aria-hidden="true">◷</span>
+            <span>Historial de movimientos</span>
+        </NavLink>
+
+        <!-- Consumos -->
+        <NavLink class="qq-nav-link"
+                href="/consumo">
+            <span class="qq-nav-icon" aria-hidden="true">◷</span>
+            <span>Consumo del hogar</span>
+        </NavLink>
+
+        <!-- Asistente IA -->
+        <NavLink class="qq-nav-link"
+                href="/asistente">
+            <span class="qq-nav-icon" aria-hidden="true">✳</span>
+            <span>Asistente IA</span>
+        </NavLink>
+
+        <!-- Perfil -->
+        <div class="qq-nav-link qq-nav-disabled"
+             aria-disabled="true"
+             title="Pendiente para una segunda versión">
+            <span class="qq-nav-icon" aria-hidden="true">♙</span>
+            <span>Mi perfil</span>
+            <span class="qq-nav-pending">V2</span>
+        </div>
+
+        <div class="qq-nav-footer">
+            <span class="qq-nav-footer-dot"></span>
+
+            <div class="qq-nav-footer-info">
+                <span>Tu hogar, más coordinado.</span>
+
+                <strong>
+                    @(string.IsNullOrWhiteSpace(Auth.NombreHogarActivo)
+                        ? "Sin hogar seleccionado"
+                        : Auth.NombreHogarActivo)
+                </strong>
+            </div>
+        </div>
+
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+    private bool _hogarExpandido;
+
+    private void ToggleHogar()
+    {
+        _hogarExpandido = !_hogarExpandido;
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override void OnInitialized()
+    {
+        Auth.OnChange += ActualizarInterfaz;
+    }
+
+    private void ActualizarInterfaz()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Auth.OnChange -= ActualizarInterfaz;
+    }
+}

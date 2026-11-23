@@ -1,0 +1,1878 @@
+
+/* =========================================================
+   ¿QUÉ QUEDA? — SISTEMA GLOBAL DE ESTILOS
+   Colores, tipografía, formularios, botones y componentes.
+   ========================================================= */
+
+/* 1. Variables globales de diseño */
+:root {
+    --color-primary: #456e50;
+    --color-primary-hover: #365b40;
+    --color-primary-light: #e8f1e8;
+
+    --color-text: #26352c;
+    --color-text-muted: #758078;
+
+    --color-background: #f5f7f4;
+    --color-surface: #ffffff;
+    --color-border: #e4e9e3;
+
+    --color-danger: #9a3c2d;
+    --color-danger-background: #fff3f0;
+    --color-danger-border: #f0d1ca;
+
+    --color-success: #28633d;
+    --color-success-background: #edf7ef;
+    --color-success-border: #cce6d1;
+
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    --shadow-card: 0 8px 28px rgba(35, 60, 42, 0.08);
+
+    --font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 2. Base de la aplicación */
+html,
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--color-text);
+}
+
+h1:focus {
+    outline: none;
+}
+
+p {
+    line-height: 1.6;
+}
+
+a,
+.btn-link {
+    color: var(--color-primary);
+}
+
+a:hover {
+    color: var(--color-primary-hover);
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+input[type="submit"] {
+    cursor: pointer;
+}
+
+button:disabled,
+input[type="submit"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+:focus-visible {
+    outline: 3px solid rgba(69, 110, 80, 0.3);
+    outline-offset: 2px;
+}
+
+/* 3. Contenido general */
+.content {
+    padding-top: 1.1rem;
+}
+
+/* 4. Botones globales */
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-outline,
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.15s ease,
+                border-color 0.15s ease,
+                color 0.15s ease;
+}
+
+.btn-primary {
+    color: #ffffff;
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    color: #ffffff;
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+}
+
+.btn-secondary {
+    color: var(--color-text);
+    background: #f0f3ef;
+    border-color: var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #e5ebe4;
+}
+
+.btn-outline {
+    color: var(--color-primary);
+    background: transparent;
+    border-color: var(--color-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+    color: #ffffff;
+    background: var(--color-primary);
+}
+
+.btn-danger {
+    color: #ffffff;
+    background: #a33f32;
+    border-color: #a33f32;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #843126;
+}
+
+/* 5. Tarjetas reutilizables */
+.card,
+.form-card {
+    width: 100%;
+    padding: 28px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+}
+
+.form-card {
+    max-width: 460px;
+    margin: 0 auto;
+}
+
+.card h2,
+.form-card h2 {
+    margin-top: 0;
+}
+
+/* 6. Contenedor común para formularios */
+.form-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--color-background);
+}
+
+.form-brand {
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+.form-logo {
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    border-radius: var(--radius-lg);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.form-brand h1 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 700;
+}
+
+.form-brand p,
+.form-description {
+    color: var(--color-text-muted);
+    font-size: 14px;
+}
+
+.form-heading {
+    margin-bottom: 24px;
+}
+
+.form-heading h2 {
+    margin: 0 0 8px;
+    font-size: 21px;
+}
+
+.form-heading p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 7. Campos de formularios */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.form-field label {
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea,
+.form-control {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #dce3dc;
+    border-radius: var(--radius-md);
+    background: #ffffff;
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.form-field textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder,
+.form-control::placeholder {
+    color: #929b94;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus,
+.form-control:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(69, 110, 80, 0.12);
+}
+
+.form-field small,
+.form-help {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* 8. Botón principal de formularios */
+.form-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 8px;
+    padding: 13px 16px;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.form-submit:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+}
+
+.form-submit:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+/* 9. Mensajes de estado */
+.alert,
+.login-message {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-md);
+    background: var(--color-danger-background);
+    color: var(--color-danger);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.alert-success {
+    border-color: var(--color-success-border);
+    background: var(--color-success-background);
+    color: var(--color-success);
+}
+
+.alert-error {
+    border-color: var(--color-danger-border);
+    background: var(--color-danger-background);
+    color: var(--color-danger);
+}
+
+/* 10. Enlaces auxiliares de formularios */
+.form-footer,
+.login-register {
+    margin: 24px 0 0;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.form-footer a,
+.login-register a {
+    color: var(--color-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.form-footer a:hover,
+.login-register a:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+
+/* 11. Compatibilidad con formularios Bootstrap de la plantilla */
+.form-control:focus,
+.form-check-input:focus,
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus {
+    box-shadow: 0 0 0 0.1rem #ffffff,
+                0 0 0 0.25rem rgba(69, 110, 80, 0.35);
+}
+
+.valid.modified:not([type="checkbox"]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid red;
+}
+
+.validation-message {
+    color: var(--color-danger);
+    font-size: 13px;
+}
+
+/* 12. Mensaje de error de Blazor */
+#blazor-error-ui {
+    color-scheme: light only;
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    z-index: 1000;
+    width: 100%;
+    padding: 0.6rem 1.25rem 0.7rem;
+    box-sizing: border-box;
+    background: lightyellow;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    color: #26352c;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    cursor: pointer;
+}
+
+.blazor-error-boundary {
+    padding: 1rem 1rem 1rem 3.7rem;
+    background: #b32121;
+    color: #ffffff;
+}
+
+.blazor-error-boundary::after {
+    content: "Ha ocurrido un error.";
+}
+
+/* 13. Indicador de carga de Blazor */
+.loading-progress {
+    position: relative;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    margin: 20vh auto 1rem;
+}
+
+.loading-progress circle {
+    fill: none;
+    stroke: #e0e0e0;
+    stroke-width: 0.6rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+
+.loading-progress circle:last-child {
+    stroke: var(--color-primary);
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+    transition: stroke-dasharray 0.05s ease-in-out;
+}
+
+.loading-progress-text {
+    position: absolute;
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+    text-align: center;
+    font-weight: bold;
+}
+
+.loading-progress-text::after {
+    content: var(--blazor-load-percentage-text, "Cargando");
+}
+
+/* 14. Código y elementos flotantes de Bootstrap */
+code {
+    color: #c02d76;
+}
+
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* 15. Adaptación a móviles */
+@media (max-width: 480px) {
+    .form-page {
+        min-height: 100vh;
+        padding: 16px;
+    }
+
+    .form-card {
+        padding: 24px 20px;
+        border-radius: var(--radius-lg);
+    }
+
+    .form-brand h1 {
+        font-size: 25px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+}
+
+
+/* ==============================
+   Botones globales de ¿Qué Queda?
+   ============================== */
+ 
+
+.btn-success,
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease,
+                border-color 0.2s ease;
+}
+
+/* Verde suave, similar al botón del formulario */
+.btn-success {
+    color: #ffffff;
+    background-color: #456e50;
+    border-color: #456e50;
+}
+
+.btn-success:hover:not(:disabled) {
+    color: #ffffff;
+    background-color: #365b40;
+    border-color: #365b40;
+}
+
+/* Rojo discreto, menos llamativo */
+.btn-danger {
+    color: #ffffff;
+    background-color: #a95757;
+    border-color: #a95757;
+}
+
+.btn-danger:hover:not(:disabled) {
+    color: #ffffff;
+    background-color: #8f4545;
+    border-color: #8f4545;
+}
+
+.btn-success:disabled,
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-success:focus-visible,
+.btn-danger:focus-visible {
+    outline: 3px solid #a7c9af;
+    outline-offset: 2px;
+}
+
+
+/* =========================================
+   ¿QUÉ QUEDA? — Pantalla principal
+   ========================================= */
+
+.qq-dashboard {
+    --qq-green: #456e50;
+    --qq-green-dark: #365b40;
+    --qq-green-light: #e8f1e8;
+    --qq-text: #26352c;
+    --qq-muted: #758078;
+    --qq-border: #e4e9e3;
+    --qq-surface: #ffffff;
+    --qq-background: #f5f7f4;
+
+    width: 100%;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 28px;
+    color: var(--qq-text);
+    box-sizing: border-box;
+}
+
+.qq-dashboard *,
+.qq-dashboard *::before,
+.qq-dashboard *::after {
+    box-sizing: border-box;
+}
+
+.qq-page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.qq-eyebrow {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--qq-green);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+.qq-page-heading h1 {
+    margin: 0;
+    color: var(--qq-text);
+    font-size: clamp(1.65rem, 2.5vw, 2.15rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+.qq-page-heading p {
+    margin: 8px 0 0;
+    color: var(--qq-muted);
+    font-size: 0.92rem;
+}
+
+/* Indicadores del hogar */
+
+.qq-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.qq-stat-card {
+    position: relative;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--qq-border);
+    border-radius: 15px;
+    background: var(--qq-surface);
+    box-shadow: 0 3px 12px rgba(35, 60, 42, 0.035);
+}
+
+.qq-stat-icon {
+    display: flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    background: var(--qq-green-light);
+    color: var(--qq-green);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.qq-stat-label {
+    display: block;
+    color: var(--qq-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.qq-stat-card h2 {
+    margin: 7px 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+
+.qq-stat-card p {
+    margin: 0;
+    color: var(--qq-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+/* Distribución de contenido y asistente */
+
+.qq-content-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.85fr);
+    align-items: start;
+    gap: 20px;
+}
+
+.qq-main-column {
+    display: grid;
+    min-width: 0;
+    gap: 20px;
+}
+
+.qq-panel,
+.qq-assistant-panel {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--qq-border);
+    border-radius: 16px;
+    background: var(--qq-surface);
+    box-shadow: 0 4px 16px rgba(35, 60, 42, 0.035);
+}
+
+.qq-panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.qq-panel-heading .qq-eyebrow {
+    margin-bottom: 6px;
+}
+
+.qq-panel-heading h2,
+.qq-assistant-heading h2 {
+    margin: 0;
+    color: var(--qq-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.qq-panel-description {
+    margin: 12px 0 20px;
+    color: var(--qq-muted);
+    font-size: 0.84rem;
+    line-height: 1.6;
+}
+
+.qq-status {
+    flex-shrink: 0;
+    padding: 6px 9px;
+    border-radius: 8px;
+    background: var(--qq-green-light);
+    color: var(--qq-green);
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+/* Estados vacíos */
+
+.qq-empty-state {
+    display: flex;
+    min-height: 180px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    border: 1px dashed #dce5db;
+    border-radius: 12px;
+    background: #fafbf9;
+    text-align: center;
+}
+
+.qq-empty-state-compact {
+    min-height: 145px;
+}
+
+.qq-empty-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    border-radius: 13px;
+    background: var(--qq-green-light);
+    color: var(--qq-green);
+    font-size: 1.3rem;
+}
+
+.qq-empty-state h3 {
+    margin: 0 0 7px;
+    color: var(--qq-text);
+    font-size: 0.92rem;
+    font-weight: 700;
+}
+
+.qq-empty-state p {
+    max-width: 340px;
+    margin: 0;
+    color: var(--qq-muted);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+/* Botones de la pantalla principal */
+
+.qq-button {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+    padding: 10px 15px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.qq-button-primary {
+    background: var(--qq-green);
+    color: #ffffff;
+}
+
+.qq-button-secondary {
+    border-color: var(--qq-border);
+    background: #ffffff;
+    color: var(--qq-green);
+}
+
+.qq-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Panel del asistente IA */
+
+.qq-assistant-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.qq-assistant-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.qq-assistant-icon {
+    display: flex;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--qq-green-light);
+    color: var(--qq-green);
+    font-size: 1.45rem;
+}
+
+.qq-assistant-heading p {
+    margin: 5px 0 0;
+    color: var(--qq-muted);
+    font-size: 0.76rem;
+}
+
+.qq-assistant-intro {
+    padding: 14px;
+    border-radius: 11px;
+    background: #f7f9f5;
+}
+
+.qq-assistant-intro .qq-eyebrow {
+    margin-bottom: 8px;
+}
+
+.qq-assistant-intro p {
+    margin: 0;
+    color: var(--qq-text);
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.qq-example-message {
+    align-self: flex-end;
+    max-width: 95%;
+    padding: 11px 13px;
+    border: 1px solid #e1e9de;
+    border-radius: 12px 12px 3px 12px;
+    background: var(--qq-green-light);
+    color: var(--qq-text);
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+.qq-assistant-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+}
+
+.qq-notice-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: #a7a99b;
+}
+
+.qq-assistant-notice p {
+    margin: 0;
+    color: var(--qq-muted);
+    font-size: 0.74rem;
+    line-height: 1.6;
+}
+
+.qq-chat-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding: 10px;
+    border: 1px solid var(--qq-border);
+    border-radius: 11px;
+    background: #fafbf9;
+}
+
+.qq-chat-placeholder span {
+    flex: 1;
+    color: var(--qq-muted);
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+.qq-chat-placeholder button {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 9px;
+    background: var(--qq-green);
+    color: #ffffff;
+    font-size: 1.1rem;
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Pie de la página */
+
+.qq-dashboard-footer {
+    padding: 24px 0 6px;
+    color: var(--qq-muted);
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+/* Adaptación a tabletas y móviles */
+
+@media (max-width: 1050px) {
+    .qq-content-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .qq-assistant-panel {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    .qq-assistant-heading,
+    .qq-assistant-notice,
+    .qq-chat-placeholder {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .qq-dashboard {
+        padding: 18px 14px;
+    }
+
+    .qq-page-heading {
+        margin-bottom: 18px;
+    }
+
+    .qq-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .qq-stat-card {
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr);
+        column-gap: 12px;
+        padding: 14px;
+    }
+
+    .qq-stat-icon {
+        grid-row: 1 / span 3;
+        margin: 0;
+    }
+
+    .qq-stat-label,
+    .qq-stat-card h2,
+    .qq-stat-card p {
+        grid-column: 2;
+    }
+
+    .qq-stat-card h2 {
+        margin: 4px 0;
+    }
+
+    .qq-content-grid,
+    .qq-main-column {
+        gap: 14px;
+    }
+
+    .qq-panel,
+    .qq-assistant-panel {
+        padding: 17px;
+        border-radius: 14px;
+    }
+
+    .qq-panel-heading h2,
+    .qq-assistant-heading h2 {
+        font-size: 1rem;
+    }
+
+    .qq-empty-state {
+        min-height: 160px;
+        padding: 17px;
+    }
+
+    .qq-assistant-panel {
+        display: flex;
+    }
+
+    .qq-dashboard-footer {
+        padding-top: 20px;
+    }
+}
+
+/* Resultados del catálogo en Inventario */
+.qq-product-results {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    border: 1px solid #dce3dc;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+    .qq-product-results {
+        max-height: 210px;
+    }
+}
+
+/* Móvil */
+@media (max-width: 480px) {
+    .qq-product-results {
+        max-height: 180px;
+    }
+}
+
+.qq-product-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 0;
+    border-bottom: 1px solid #e4e9e3;
+    background: #ffffff;
+    color: #26352c;
+    text-align: left;
+    cursor: pointer;
+}
+
+.qq-product-option:last-child {
+    border-bottom: 0;
+}
+
+.qq-product-option:hover {
+    background: #f5f7f4;
+}
+
+.qq-product-option.selected {
+    background: #e8f1e8;
+    color: #365b40;
+    font-weight: 700;
+}
+
+.qq-product-option small {
+    flex-shrink: 0;
+    color: #758078;
+}
+
+.qq-product-no-results {
+    margin: 0;
+    padding: 14px;
+    color: #758078;
+    font-size: 13px;
+}
+.qq-field-help {
+    display: block;
+    margin-top: 6px;
+    color: #758078;
+    font-size: 13px;
+    line-height: 1.5;
+}
+/* =========================================
+   INVENTARIO — Encabezado y resumen
+   ========================================= */
+
+.qq-inventory-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.qq-inventory-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.qq-inventory-header p {
+    margin: 7px 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.qq-inventory-header .qq-button {
+    margin-top: 0;
+}
+
+.qq-inventory-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.qq-inventory-stat {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 15px;
+    background: var(--color-surface);
+}
+
+.qq-inventory-stat span {
+    display: block;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.qq-inventory-stat strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--color-text);
+    font-size: 1.6rem;
+}
+
+@media (max-width: 640px) {
+    .qq-inventory-header {
+        align-items: stretch;
+    }
+
+    .qq-inventory-header .qq-button {
+        width: 100%;
+    }
+
+    .qq-inventory-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .qq-inventory-stat {
+        padding: 14px 16px;
+    }
+}
+
+/* =========================================
+   HOME — Productos del inventario
+   ========================================= */
+
+.qq-home-inventory-list {
+    display: flex;
+    flex-direction: column;
+    margin: 20px 0;
+    border: 1px solid var(--qq-border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--qq-surface);
+}
+
+.qq-home-inventory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--qq-border);
+}
+
+.qq-home-inventory-item:last-child {
+    border-bottom: 0;
+}
+
+.qq-home-inventory-product {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.qq-home-inventory-product strong {
+    color: var(--qq-text);
+}
+
+.qq-home-inventory-product span {
+    color: var(--qq-muted);
+    font-size: 0.85rem;
+}
+
+.qq-home-status {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.qq-home-status-available {
+    background: #e8f1e8;
+    color: #365b40;
+}
+
+.qq-home-status-warning {
+    background: #fff3d9;
+    color: #946500;
+}
+
+.qq-home-status-missing {
+    background: #fbe8e7;
+    color: #a33e38;
+}
+
+@media (max-width: 480px) {
+    .qq-home-inventory-item {
+        padding: 13px 12px;
+        gap: 8px;
+    }
+}
+/* =========================================
+   HOME — Filtros del inventario
+   ========================================= */
+
+.qq-home-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 18px 0;
+}
+
+.qq-home-filters button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 13px;
+    border: 1px solid var(--color-border);
+    border-radius: 20px;
+    background: #ffffff;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.qq-home-filters button:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+.qq-home-filters button.active {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+/* =========================================
+   HOME — Lista con scroll
+   ========================================= */
+
+.qq-home-inventory-list {
+    max-height: 360px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #aab9aa #f1f4f0;
+}
+
+/* Scroll para navegadores Chrome y Edge */
+
+.qq-home-inventory-list::-webkit-scrollbar {
+    width: 7px;
+}
+
+.qq-home-inventory-list::-webkit-scrollbar-track {
+    background: #f1f4f0;
+}
+
+.qq-home-inventory-list::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: #aab9aa;
+}
+
+/* Tablet */
+
+@media (max-width: 768px) {
+    .qq-home-filters {
+        gap: 7px;
+    }
+
+    .qq-home-inventory-list {
+        max-height: 330px;
+    }
+}
+
+/* Móvil */
+
+@media (max-width: 480px) {
+    .qq-home-filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .qq-home-filters button {
+        width: 100%;
+        padding: 9px 5px;
+        font-size: 0.73rem;
+    }
+
+    .qq-home-inventory-list {
+        max-height: 290px;
+    }
+
+    .qq-home-inventory-item {
+        align-items: center;
+    }
+}
+
+/* LISTAS DE COMPRA */
+
+.qq-list-card {
+    position: relative;
+    min-width: 0;
+    padding: 14px;
+    border: 2px solid var(--color-border);
+    border-radius: 15px;
+    background: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qq-list-card:hover {
+    box-shadow: 0 4px 14px rgba(35, 60, 42, 0.07);
+}
+
+.qq-list-card-open {
+    display: block;
+    width: 100%;
+    padding: 8px 34px 8px 8px;
+    border: 0;
+    background: transparent;
+    color: var(--color-text);
+    text-align: left;
+}
+
+.qq-list-card-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.qq-list-card-info {
+    margin-top: 8px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+.qq-list-card-status {
+    margin-top: 6px;
+    font-size: 0.85rem;
+}
+
+.qq-list-auto-label {
+    padding: 4px 7px;
+    border-radius: 6px;
+    background: #e8f1e8;
+    color: #365b40;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.qq-list-delete {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #f0d1ca;
+    border-radius: 8px;
+    background: #fff8f6;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.qq-list-delete:hover {
+    background: #fbe8e7;
+    opacity: 1;
+}
+
+.qq-list-delete-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 9px;
+    background: #fff3f0;
+    color: #843c32;
+    font-size: 0.82rem;
+}
+
+.qq-list-delete-confirm > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.qq-list-delete-confirm .qq-button {
+    margin-top: 0;
+}
+
+.qq-button-danger {
+    background: #a95757;
+    color: white;
+}
+
+.qq-button-danger:hover:not(:disabled) {
+    background: #8f4545;
+}
+
+/* Generación automática */
+
+.qq-button-generate {
+    margin-top: 0;
+    gap: 9px;
+    border: 1px solid #dce7dc;
+    background: #f0f4ef;
+    color: #365b40;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.qq-button-generate:hover:not(:disabled) {
+    border-color: #9db99f;
+    background: #e5eee4;
+}
+
+.qq-wand-icon {
+    display: inline-block;
+    font-size: 1.05rem;
+    animation: qq-wand-glow 2s ease-in-out infinite;
+}
+
+@keyframes qq-wand-glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+        transform: rotate(-5deg);
+    }
+    50% {
+        filter: drop-shadow(0 0 5px #a4c58c);
+        transform: rotate(8deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .qq-wand-icon {
+        animation: none;
+    }
+}
+
+/* ==================================================
+   ACCIONES CRUD — ESTÁNDAR GLOBAL
+   ================================================== */
+
+.qq-crud-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.qq-crud-action {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #e4e9e3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #456e50;
+    cursor: pointer;
+    transition: background-color 0.15s ease,
+                border-color 0.15s ease;
+}
+
+.qq-crud-action:hover:not(:disabled) {
+    background: #e8f1e8;
+    border-color: #456e50;
+}
+
+.qq-crud-action-delete {
+    color: #9a3c2d;
+    border-color: #f0d1ca;
+    background: #fff8f6;
+}
+
+.qq-crud-action-delete:hover:not(:disabled) {
+    background: #fbe8e7;
+    border-color: #d9aaa0;
+}
+
+.qq-crud-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.qq-crud-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 10px;
+    border: 1px solid #f0d1ca;
+    border-radius: 9px;
+    background: #fff3f0;
+    color: #843c32;
+    font-size: 0.82rem;
+}
+
+.qq-crud-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.qq-crud-confirm .qq-button {
+    margin-top: 0;
+}
+
+
+/* =========================================
+   ASISTENTE IA — CHAT CONVERSACIONAL
+   ========================================= */
+
+.qq-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 280px;
+    max-height: 430px;
+    overflow-y: auto;
+    padding: 18px 0;
+}
+
+.qq-chat-message {
+    max-width: 85%;
+    padding: 13px 15px;
+    border-radius: var(--radius-lg);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.qq-chat-message p {
+    margin: 0;
+}
+
+.qq-chat-message-assistant {
+    align-self: flex-start;
+    background: var(--color-background);
+    color: var(--color-text);
+}
+
+.qq-chat-message-user {
+    align-self: flex-end;
+    background: var(--color-primary-light);
+    color: var(--color-text);
+}
+
+.qq-chat-message-label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--color-primary);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+}
+
+.qq-chat-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin: 15px 0;
+}
+
+.qq-chat-suggestions-label {
+    width: 100%;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+}
+
+.qq-chat-suggestion {
+    padding: 9px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-primary);
+    font-size: 12px;
+}
+
+.qq-chat-composer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+}
+
+.qq-chat-composer textarea {
+    flex: 1;
+    min-width: 0;
+    resize: vertical;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.qq-chat-composer textarea:focus {
+    box-shadow: none;
+}
+
+.qq-chat-send {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 22px;
+}
+
+.qq-chat-send:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.qq-chat-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    margin-top: 15px;
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+.qq-chat-status-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    margin-top: 4px;
+    border-radius: 50%;
+    background: #a5b1a7;
+}
+
+@media (max-width: 600px) {
+    .qq-chat-message {
+        max-width: 92%;
+    }
+}
+
+
+/* Indicador de escritura del asistente */
+
+.qq-typing {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 18px;
+}
+
+.qq-typing span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    animation: qq-typing-animation 1.2s infinite ease-in-out;
+}
+
+.qq-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.qq-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes qq-typing-animation {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+
+    30% {
+        transform: translateY(-5px);
+        opacity: 1;
+    }
+}
+
+.qq-chat-mic {
+    min-width: 46px;
+    height: 46px;
+    border: 1px solid #d5d5d5;
+    border-radius: 50%;
+    background: white;
+    color: #333;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.qq-chat-mic-active {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.qq-chat-mic:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.qq-assistant-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 24px;
+    overflow: hidden;
+}
+
+.qq-assistant-card .qq-chat {
+    width: 100%;
+    min-width: 0;
+}
+
+.qq-assistant-card .qq-chat-message {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+    .qq-assistant-card {
+        padding: 14px;
+    }
+}
+
+.qq-assistant-card .qq-chat-message-assistant {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
+}
+
+.qq-assistant-response {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.5;
+    gap: 4px;
+}
+
+.qq-response-line {
+    display: block;
+}
+
+.qq-response-spacing {
+    height: 8px;
+}
+
+.qq-hogar-destacado {
+    display: inline-block;
+    background-color: #e3f0e6;
+    color: #246b42;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+
+.qq-audio-monitor {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    color: #52645a;
+    font-size: 12px;
+}
+
+.qq-audio-bars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 28px;
+}
+
+.qq-audio-bars span {
+    display: block;
+    width: 4px;
+    min-height: 3px;
+    background: #20a36a;
+    border-radius: 5px;
+    transition: height 0.1s ease;
+}
+
+.qq-chat-composer {
+    position: relative;
+}
+
+.qq-audio-monitor {
+    position: absolute;
+    left: 16px;
+    bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 3px 0;
+    background: white;
+    z-index: 2;
+}
+/* Contenedor del asistente integrado en Home */
+.qq-assistant-panel-embedded {
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}

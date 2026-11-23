@@ -1,0 +1,804 @@
+﻿
+@page "/"
+
+@using QueQueda.Client.Services
+@inject HogarService Hogares
+@inject AuthService Auth
+@inject NavigationManager Navigation
+@inject InventarioService InventarioSvc
+@inject ListaCompraService ListaCompraSvc
+
+
+<PageTitle>¿Qué Queda? | Mi hogar</PageTitle>
+
+<div class="qq-dashboard">
+
+    <header class="qq-page-heading">
+        <div>
+            <span class="qq-eyebrow">MI HOGAR</span>
+
+            @if (_sesionActiva)
+            {
+                <h1>¡Hola, @Auth.Nombre!</h1>
+            }
+            else
+            {
+                <h1>Tu hogar, al día.</h1>
+            }
+
+            <p>Menos olvidos, compras más coordinadas.</p>
+        </div>
+    </header>
+
+    <section class="qq-summary" aria-label="Resumen del hogar">
+
+        <article class="qq-stat-card">
+            <span class="qq-stat-icon">⌂</span>
+            <span class="qq-stat-label">Mi hogar</span>
+
+            @if (_cargando)
+            {
+                <h2>Consultando...</h2>
+                <p>Buscando tu hogar.</p>
+            }
+            else if (!_sesionActiva)
+            {
+                <h2>Inicia sesión</h2>
+                <p>Accede para consultar tu hogar.</p>
+            }
+            else if (_hogarActivo is not null)
+            {
+                <h2>@_hogarActivo.Nombre</h2>
+
+                <div class="qq-home-connected">
+                    <span class="qq-home-connected-dot"></span>
+                    <strong>Tu hogar está conectado</strong>
+                </div>
+
+                <p>Perfil: @_hogarActivo.Perfil</p>
+                <p>ID del hogar: @_hogarActivo.IdHogar</p>
+            }
+            else if (_hogares.Count > 0)
+            {
+                <h2>Selecciona un hogar</h2>
+                <p>No se ha identificado un hogar activo.</p>
+
+                <button class="qq-button qq-button-primary"
+                        type="button"
+                        @onclick="IrASeleccionarHogar">
+                    Seleccionar hogar
+                </button>
+            }
+            else
+            {
+                <h2>Comienza por crear tu hogar</h2>
+                <p>
+                    Todavía no tienes un hogar asociado.
+                    Crea uno para comenzar a organizar tu despensa.
+                </p>
+
+                <form @onsubmit="CrearHogarAsync"
+                      @onsubmit:preventDefault>
+
+                    <div class="form-field">
+                        <label for="nombreHogar">Nombre de tu hogar</label>
+                        <input id="nombreHogar"
+                               type="text"
+                               @bind="_nombreNuevoHogar"
+                               @bind:event="oninput"
+                               maxlength="100"
+                               placeholder="Ej. Casa Silva"
+                               disabled="@_creandoHogar" />
+                    </div>
+
+                    <button class="qq-button qq-button-primary"
+                            type="submit"
+                            disabled="@(_creandoHogar || string.IsNullOrWhiteSpace(_nombreNuevoHogar))">
+                        @(_creandoHogar ? "Creando hogar..." : "Crear mi hogar")
+                    </button>
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(_errorCreacion))
+                {
+                    <p role="alert">@_errorCreacion</p>
+                }
+            }
+        </article>
+
+        <article class="qq-stat-card">
+            <span class="qq-stat-icon">▤</span>
+            <span class="qq-stat-label">Productos</span>
+
+            @if (_cargando)
+            {
+                <h2>...</h2>
+                <p>Consultando inventario.</p>
+            }
+            else if (_errorInventario)
+            {
+                <h2>—</h2>
+                <p>No fue posible consultar el inventario.</p>
+            }
+            else
+            {
+                <h2>@TotalProductos</h2>
+                <p>Productos en tu inventario.</p>
+            }
+        </article>
+
+        <article class="qq-stat-card">
+            <span class="qq-stat-icon">＋</span>
+            <span class="qq-stat-label">Por reponer</span>
+
+            @if (_cargando)
+            {
+                <h2>...</h2>
+                <p>Consultando inventario.</p>
+            }
+            else if (_errorInventario)
+            {
+                <h2>—</h2>
+                <p>No fue posible consultar el inventario.</p>
+            }
+            else
+            {
+                <h2>@ProductosPorReponer</h2>
+                <p>Productos que necesitan reposición.</p>
+            }
+        </article>
+
+    </section>
+
+    <div class="qq-content-grid">
+
+        <div class="qq-main-column">
+
+            <section class="qq-panel">
+                <div class="qq-panel-heading">
+                    <div>
+                        <span class="qq-eyebrow">DESPENSA</span>
+                        <h2>Lo que hay en casa</h2>
+                    </div>
+                    <span class="qq-status">@TotalProductos productos</span>
+                </div>
+
+                <p class="qq-panel-description">
+                    Consulta las cantidades disponibles y mantén
+                    actualizado el inventario compartido.
+                </p>
+
+                @if (!_cargando && !_errorInventario && _inventario.Count > 0)
+                {
+                    <div class="qq-home-filters">
+
+                        <button type="button"
+                                class="@(_filtroInventario == "Todos" ? "active" : "")"
+                                @onclick='() => CambiarFiltro("Todos")'>
+                            Todos (@TotalProductos)
+                        </button>
+
+                        <button type="button"
+                                class="@(_filtroInventario == "Disponible" ? "active" : "")"
+                                @onclick='() => CambiarFiltro("Disponible")'>
+                            Disponibles (@TotalDisponibles)
+                        </button>
+
+                        <button type="button"
+                                class="@(_filtroInventario == "Por agotarse" ? "active" : "")"
+                                @onclick='() => CambiarFiltro("Por agotarse")'>
+                            Por agotarse (@TotalPorAgotarse)
+                        </button>
+
+                        <button type="button"
+                                class="@(_filtroInventario == "Faltante" ? "active" : "")"
+                                @onclick='() => CambiarFiltro("Faltante")'>
+                            Faltantes (@TotalFaltantes)
+                        </button>
+
+                    </div>
+                }
+
+                @if (_cargando)
+                {
+                    <div class="qq-empty-state">
+                        <h3>Consultando inventario...</h3>
+                    </div>
+                }
+                else if (_errorInventario)
+                {
+                    <div class="qq-empty-state">
+                        <h3>No fue posible consultar el inventario</h3>
+                        <p>Intenta nuevamente más tarde.</p>
+                    </div>
+                }
+                else if (_inventario.Count == 0)
+                {
+                    <div class="qq-empty-state">
+                        <span class="qq-empty-icon">▦</span>
+                        <h3>Tu inventario está vacío</h3>
+                        <p>
+                            Incorpora productos para comenzar
+                            a organizar tu despensa.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    @if (TotalFiltradosHome == 0)
+                    {
+                        <div class="qq-home-filter-empty">
+                            No hay productos en esta categoría.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="qq-home-inventory-list">
+
+                            @foreach (var producto in ProductosDestacados)
+                            {
+                                <div class="qq-home-inventory-item">
+
+                                    <div class="qq-home-inventory-product">
+                                        <strong>@producto.Nombre</strong>
+
+                                        <span>
+                                            @producto.CantidadActual.ToString("0.##")
+                                            @(producto.UnidadMedida ?? "")
+                                        </span>
+                                    </div>
+
+                                    <span class="@ClaseEstado(producto.Estado)">
+                                        @producto.Estado
+                                    </span>
+
+                                </div>
+                            }
+
+                        </div>
+
+                    }
+
+                    <button class="qq-button qq-button-primary"
+                            type="button"
+                            @onclick="IrAInventario">
+                        Ver inventario completo
+                    </button>
+                }
+
+            </section>
+
+            
+        <section class="qq-panel">
+            <div class="qq-panel-heading">
+                <div>
+                    <span class="qq-eyebrow">PLANIFICACIÓN</span>
+                    <h2>Para la próxima compra</h2>
+                </div>
+            </div>
+
+            <p class="qq-panel-description">
+                Consulta y administra rápidamente los productos de tus listas.
+            </p>
+
+            @if (_cargandoListasHome)
+            {
+                <div class="qq-empty-state qq-empty-state-compact">
+                    <h3>Consultando listas...</h3>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(_errorListasHome))
+            {
+                <div class="qq-empty-state qq-empty-state-compact">
+                    <h3>No fue posible consultar las listas.</h3>
+                    <p>@_errorListasHome</p>
+                    <button class="qq-button"
+                            type="button"
+                            @onclick="CargarListasCompraHomeAsync">
+                        Reintentar
+                    </button>
+                </div>
+            }
+            else if (_listasCompraHome.Count == 0)
+            {
+                <div class="qq-empty-state qq-empty-state-compact">
+                    <span class="qq-empty-icon">☷</span>
+                    <h3>Aún no tienes listas de compras</h3>
+                    <p>
+                        Crea una lista desde el módulo de compras
+                        para visualizarla aquí.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="form-field" style="margin-top:14px;">
+                    <label for="listaCompraHome">Seleccionar lista</label>
+                    <select id="listaCompraHome"
+                            value="@_idListaHomeSeleccionada"
+                            @onchange="CambiarListaCompraHomeAsync"
+                            disabled="@_procesandoCompraHome">
+                        @foreach (var lista in _listasCompraHome)
+                        {
+                            <option value="@lista.IdLista">
+                                @lista.Nombre
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                @if (_cargandoDetalleListaHome)
+                {
+                    <div class="qq-empty-state qq-empty-state-compact">
+                        <p>Consultando productos...</p>
+                    </div>
+                }
+                else if (_productosListaHome.Count == 0)
+                {
+                    <div class="qq-empty-state qq-empty-state-compact">
+                        <h3>Esta lista no tiene productos</h3>
+                        <p>
+                            Puedes agregar productos desde el módulo de listas de compras.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="qq-home-inventory-list">
+                        @foreach (var item in _productosListaHome)
+                        {
+                            <div class="qq-home-inventory-item"
+                                @key="item.IdDetalle">
+
+                                <div class="qq-home-inventory-product">
+                                    <strong>@item.Nombre</strong>
+                                    <span>
+                                        @item.Cantidad.ToString("0.##")
+                                        @(item.UnidadMedida ?? "")
+                                    </span>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.Categoria))
+                                    {
+                                        <span>@item.Categoria</span>
+                                    }
+                                </div>
+
+                                @if (item.Comprado == 1)
+                                {
+                                    <span class="qq-home-status qq-home-status-available">
+                                        Comprado
+                                    </span>
+                                }
+                                else
+                                {
+                                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                        <button class="qq-button qq-button-primary"
+                                                type="button"
+                                                @onclick="() => ComprarProductoHomeAsync(item)"
+                                                disabled="@_procesandoCompraHome">
+                                            Comprado
+                                        </button>
+
+                                        <button class="qq-button"
+                                                type="button"
+                                                @onclick="() => QuitarProductoHomeAsync(item)"
+                                                disabled="@_procesandoCompraHome">
+                                            Quitar
+                                        </button>
+                                    </div>
+                                }
+
+                            </div>
+                        }
+                    </div>
+
+                    <p class="qq-panel-description" style="margin-top:10px;">
+                        @_productosListaHome.Count productos ·
+                        @_productosListaHome.Count(p => p.Comprado == 1) comprados ·
+                        @_productosListaHome.Count(p => p.Comprado == 0) pendientes
+                    </p>
+                }
+            }
+
+            <button class="qq-button qq-button-primary"
+                    type="button"
+                    style="margin-top:12px;"
+                    @onclick="IrAListasCompraHome">
+                Ver listas de compras
+            </button>
+        </section>
+
+
+        </div>
+
+    <aside class="qq-assistant-panel-embedded">
+        <Asistente />
+    </aside>
+
+    </div>
+
+    <footer class="qq-dashboard-footer">
+        ¿Qué Queda? · Organiza tu hogar, a tu manera.
+    </footer>
+
+</div>
+
+@code {
+    // Hogares asociados al usuario.
+    private List<HogarDto> _hogares = new();
+
+    // Hogar seleccionado por el usuario.
+    private HogarDto? _hogarActivo;
+
+    // Estado de sesión y formularios.
+    private bool _cargando = true;
+    private bool _sesionActiva;
+
+    private string _nombreNuevoHogar = string.Empty;
+    private bool _creandoHogar;
+    private string _errorCreacion = string.Empty;
+
+    // Inventario del hogar activo.
+    private List<InventarioDto> _inventario = new();
+    private bool _errorInventario;
+
+    // Indicadores del inventario.
+    private int TotalProductos => _inventario.Count;
+
+    private int ProductosPorReponer =>
+        _inventario.Count(p =>
+            p.CantidadActual <= p.CantidadMinima);
+
+    private int TotalDisponibles =>
+        _inventario.Count(p => p.Estado == "Disponible");
+
+    private int TotalPorAgotarse =>
+        _inventario.Count(p => p.Estado == "Por agotarse");
+
+    private int TotalFaltantes =>
+        _inventario.Count(p => p.Estado == "Faltante");
+
+
+    // Planificación de compras en el Home.
+    private List<ListaCompraDto> _listasCompraHome = new();
+    private List<ListaCompraProductoDto> _productosListaHome = new();
+
+    private int _idListaHomeSeleccionada;
+
+    private bool _cargandoListasHome;
+    private bool _cargandoDetalleListaHome;
+    private bool _procesandoCompraHome;
+
+    private string _errorListasHome = string.Empty;
+
+
+    // Filtros del inventario en el Home.
+    private string _filtroInventario = "Todos";
+
+    private void CambiarFiltro(string filtro)
+    {
+        _filtroInventario = filtro;
+    }
+
+    private IEnumerable<InventarioDto> ProductosFiltradosHome =>
+        _inventario.Where(p =>
+            _filtroInventario == "Todos" ||
+            p.Estado == _filtroInventario
+        );
+
+    private int TotalFiltradosHome =>
+        ProductosFiltradosHome.Count();
+
+    // Máximo cinco productos visibles.
+    private IEnumerable<InventarioDto> ProductosDestacados =>
+        ProductosFiltradosHome;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Auth.InicializarAsync();
+
+            _sesionActiva = Auth.SesionActiva;
+
+            if (!_sesionActiva)
+            {
+                return;
+            }
+
+            _hogares = await Hogares.ObtenerHogaresAsync();
+
+            // Buscar exclusivamente el hogar seleccionado.
+            if (Auth.IdHogarActivo.HasValue)
+            {
+                _hogarActivo = _hogares.FirstOrDefault(
+                    h => h.IdHogar == Auth.IdHogarActivo.Value
+                );
+            }
+
+            // Consultar inventario del hogar activo.
+            if (_hogarActivo is not null)
+            {
+                try
+                {
+                    _inventario = await InventarioSvc.ObtenerInventarioAsync(
+                        _hogarActivo.IdHogar
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _errorInventario = true;
+
+                    Console.WriteLine(
+                        $"[HOME] Error al consultar inventario: {ex.Message}"
+                    );
+                }
+                // Consultar listas de compras para la planificación del Home.
+                await CargarListasCompraHomeAsync();
+
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[HOME] Error al consultar hogares: {ex.Message}"
+            );
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void IrASeleccionarHogar()
+    {
+        Navigation.NavigateTo("/seleccionar-hogar");
+    }
+
+    private async Task CrearHogarAsync()
+    {
+        if (!_sesionActiva || _creandoHogar)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_nombreNuevoHogar))
+        {
+            _errorCreacion = "Ingresa un nombre para tu hogar.";
+            return;
+        }
+
+        _creandoHogar = true;
+        _errorCreacion = string.Empty;
+
+        try
+        {
+            var hogarCreado = await Hogares.CrearHogarAsync(
+                _nombreNuevoHogar
+            );
+
+            _hogares = new List<HogarDto>
+            {
+                hogarCreado
+            };
+
+            // El hogar recién creado pasa a ser el hogar activo.
+            await Auth.EstablecerHogarActivoAsync(
+                hogarCreado.IdHogar,
+                hogarCreado.Nombre
+            );
+
+            _hogarActivo = hogarCreado;
+            _nombreNuevoHogar = string.Empty;
+
+            Console.WriteLine(
+                $"[HOME] Hogar creado y seleccionado: {hogarCreado.Nombre}"
+            );
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine(
+                $"[HOME] Error HTTP al crear hogar: {ex.Message}"
+            );
+
+            _errorCreacion = "No se pudo conectar con el servidor.";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[HOME] Error al crear hogar: {ex.Message}"
+            );
+
+            _errorCreacion = "No fue posible crear el hogar. Inténtalo nuevamente.";
+        }
+        finally
+        {
+            _creandoHogar = false;
+        }
+    }
+
+    private string ClaseEstado(string? estado)
+    {
+        return estado switch
+        {
+            "Disponible" => "qq-home-status qq-home-status-available",
+            "Por agotarse" => "qq-home-status qq-home-status-warning",
+            "Faltante" => "qq-home-status qq-home-status-missing",
+            _ => "qq-home-status"
+        };
+    }
+
+    private void IrAInventario()
+    {
+        Navigation.NavigateTo("/inventario");
+    }
+
+    private async Task CargarListasCompraHomeAsync()
+    {
+        if (_hogarActivo is null)
+            return;
+
+        _cargandoListasHome = true;
+        _errorListasHome = string.Empty;
+
+        try
+        {
+            _listasCompraHome = await ListaCompraSvc.ObtenerListasAsync(
+                _hogarActivo.IdHogar
+            );
+
+            if (_listasCompraHome.Count > 0)
+            {
+                // La API entrega las listas por ID descendente.
+                // La primera es la última creada.
+                _idListaHomeSeleccionada = _listasCompraHome[0].IdLista;
+
+                await CargarDetalleListaHomeAsync();
+            }
+            else
+            {
+                _idListaHomeSeleccionada = 0;
+                _productosListaHome.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HOME] Error al consultar listas: {ex.Message}");
+            _errorListasHome = "No fue posible cargar las listas de compras.";
+        }
+        finally
+        {
+            _cargandoListasHome = false;
+        }
+    }
+
+    private async Task CargarDetalleListaHomeAsync()
+    {
+        if (_idListaHomeSeleccionada <= 0)
+            return;
+
+        _cargandoDetalleListaHome = true;
+
+        try
+        {
+            var respuesta = await ListaCompraSvc.ObtenerListaAsync(
+                _idListaHomeSeleccionada
+            );
+
+            _productosListaHome = respuesta.Productos ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HOME] Error al consultar productos: {ex.Message}");
+            _errorListasHome = "No fue posible consultar los productos de la lista.";
+            _productosListaHome.Clear();
+        }
+        finally
+        {
+            _cargandoDetalleListaHome = false;
+        }
+    }
+
+    private async Task CambiarListaCompraHomeAsync(ChangeEventArgs e)
+    {
+        if (_procesandoCompraHome)
+            return;
+
+        if (int.TryParse(e.Value?.ToString(), out var idLista))
+        {
+            _idListaHomeSeleccionada = idLista;
+            _errorListasHome = string.Empty;
+
+            await CargarDetalleListaHomeAsync();
+        }
+    }
+
+    private async Task ComprarProductoHomeAsync(ListaCompraProductoDto item)
+    {
+        if (_procesandoCompraHome || item.Comprado == 1)
+            return;
+
+        if (item.Cantidad <= 0)
+        {
+            _errorListasHome = "La cantidad debe ser mayor que cero.";
+            return;
+        }
+
+        _procesandoCompraHome = true;
+        _errorListasHome = string.Empty;
+
+        try
+        {
+            await ListaCompraSvc.ConfirmarCompraAsync(
+                item.IdDetalle,
+                item.Cantidad
+            );
+
+            await ActualizarListaCompraHomeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HOME] Error al registrar compra: {ex.Message}");
+            _errorListasHome = "No fue posible registrar la compra.";
+        }
+        finally
+        {
+            _procesandoCompraHome = false;
+        }
+    }
+
+    private async Task QuitarProductoHomeAsync(ListaCompraProductoDto item)
+    {
+        if (_procesandoCompraHome)
+            return;
+
+        _procesandoCompraHome = true;
+        _errorListasHome = string.Empty;
+
+        try
+        {
+            await ListaCompraSvc.RetirarProductoAsync(item.IdDetalle);
+
+            await ActualizarListaCompraHomeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HOME] Error al retirar producto: {ex.Message}");
+            _errorListasHome = "No fue posible retirar el producto de la lista.";
+        }
+        finally
+        {
+            _procesandoCompraHome = false;
+        }
+    }
+
+    private async Task ActualizarListaCompraHomeAsync()
+    {
+        // Actualiza los datos y el avance de las listas.
+        _listasCompraHome = await ListaCompraSvc.ObtenerListasAsync(
+            _hogarActivo!.IdHogar
+        );
+
+        // Conserva la lista seleccionada y actualiza sus productos.
+        if (_listasCompraHome.Any(
+            l => l.IdLista == _idListaHomeSeleccionada))
+        {
+            await CargarDetalleListaHomeAsync();
+        }
+        else if (_listasCompraHome.Count > 0)
+        {
+            _idListaHomeSeleccionada = _listasCompraHome[0].IdLista;
+            await CargarDetalleListaHomeAsync();
+        }
+        else
+        {
+            _idListaHomeSeleccionada = 0;
+            _productosListaHome.Clear();
+        }
+    }
+
+    private void IrAListasCompraHome()
+    {
+        Navigation.NavigateTo("/listas-compra");
+    }
+
+}

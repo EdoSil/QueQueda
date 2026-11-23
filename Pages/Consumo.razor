@@ -1,0 +1,458 @@
+@page "/consumo"
+
+@using System.Globalization
+@using System.Net.Http.Json
+@using System.Text.Json.Serialization
+@using QueQueda.Client.Services
+@inject AuthService Auth
+@inject HttpClient Http
+
+<PageTitle>¿Qué Queda? | Consumo</PageTitle>
+
+<div class="qq-dashboard qq-consumo">
+    <header class="qq-page-heading">
+        <div>
+            <span class="qq-eyebrow">ANÁLISIS DEL HOGAR</span>
+            <h1>Consumo</h1>
+            <p>Conoce las salidas registradas de los productos de tu hogar.</p>
+        </div>
+    </header>
+
+    @if (_cargando)
+    {
+        <section class="qq-panel qq-consumo-message">
+            <p>Consultando la información del hogar...</p>
+        </section>
+    }
+    else if (!_sesionActiva)
+    {
+        <section class="qq-panel qq-consumo-message">
+            <h2>Inicia sesión</h2>
+            <p>Accede para consultar la información de tu hogar.</p>
+        </section>
+    }
+    else if (!_idHogar.HasValue)
+    {
+        <section class="qq-panel qq-consumo-message">
+            <h2>Selecciona un hogar</h2>
+            <p>No se encontró un hogar activo para consultar.</p>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <section class="qq-panel qq-consumo-message qq-consumo-error">
+            <h2>No fue posible cargar la información</h2>
+            <p>@_error</p>
+            <button class="qq-button qq-button-primary" @onclick="CargarAsync">Reintentar</button>
+        </section>
+    }
+    else
+    {
+        <section class="qq-summary qq-consumo-summary" aria-label="Resumen del hogar">
+            <article class="qq-stat-card">
+                <span class="qq-stat-icon">▦</span>
+                <span class="qq-stat-label">Productos en inventario</span>
+                <strong class="qq-stat-value">@_inventario.Count</strong>
+                <p>Productos actualmente registrados</p>
+            </article>
+            <article class="qq-stat-card">
+                <span class="qq-stat-icon">↓</span>
+                <span class="qq-stat-label">Salidas registradas</span>
+                <strong class="qq-stat-value">@CantidadConsumo.ToString("0.##")</strong>
+                <p>En el período seleccionado</p>
+            </article>
+            <article class="qq-stat-card">
+                <span class="qq-stat-icon">＋</span>
+                <span class="qq-stat-label">Operaciones de compra</span>
+                <strong class="qq-stat-value">@TotalOperacionesCompra</strong>
+                <p>Número de compras registradas en el período</p>
+            </article>
+            <article class="qq-stat-card">
+                <span class="qq-stat-icon">!</span>
+                <span class="qq-stat-label">Por reponer</span>
+                <strong class="qq-stat-value">@ProductosBajoMinimo</strong>
+                <p>Productos que requieren reposición</p>
+            </article>
+        </section>
+
+        <section class="qq-panel">
+            <div class="qq-panel-heading qq-consumo-filter-heading">
+                <div>
+                    <span class="qq-eyebrow">HÁBITOS DEL HOGAR</span>
+                    <h2>Actividad por período</h2>
+                    <p class="qq-panel-description">Información calculada con los movimientos que conserva el hogar.</p>
+                </div>
+                <div class="qq-consumo-filters" role="group" aria-label="Período">
+                    <button type="button" class="@ClaseFiltro("7")" @onclick='() => CambiarPeriodo("7")'>7 días</button>
+                    <button type="button" class="@ClaseFiltro("30")" @onclick='() => CambiarPeriodo("30")'>30 días</button>
+                    <button type="button" class="@ClaseFiltro("todo")" @onclick='() => CambiarPeriodo("todo")'>Todo</button>
+                </div>
+            </div>
+
+            @if (!HayMovimientosPeriodo)
+            {
+                <div class="qq-consumo-empty">
+                    No hay movimientos de compras o consumos en este período.
+                </div>
+            }
+            else
+            {
+                <div class="qq-consumo-columns">
+                    <div>
+                        <h3>Productos con más salidas</h3>
+                        @if (ProductosMasConsumidos.Count == 0)
+                        {
+                            <p class="qq-consumo-muted">No hay salidas registradas en este período.</p>
+                        }
+                        else
+                        {
+                            <div class="qq-consumo-ranking">
+                                @foreach (var item in ProductosMasConsumidos)
+                                {
+                                    <article class="qq-consumo-ranking-item">
+                                        <div class="qq-consumo-ranking-head">
+                                            <strong>@item.Nombre</strong>
+                                            <span>@item.Cantidad.ToString("0.##") @item.Unidad</span>
+                                        </div>
+                                        <div class="qq-consumo-bar-track">
+                                            <div class="qq-consumo-bar-current"
+                                                 style="width:@Porcentaje(item.Cantidad).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div>
+                        <h3>Compras por producto</h3>
+                        @if (ProductosMasComprados.Count == 0)
+                        {
+                            <p class="qq-consumo-muted">No hay compras registradas en este período.</p>
+                        }
+                        else
+                        {
+                            <div class="qq-consumo-ranking">
+                                @foreach (var item in ProductosMasComprados)
+                                {
+                                    <article class="qq-consumo-ranking-item">
+                                        <div class="qq-consumo-ranking-head">
+                                            <strong>@item.Nombre</strong>
+                                            <span>@item.Cantidad.ToString("0.##") @item.Unidad</span>
+                                        </div>
+                                        <div class="qq-consumo-bar-track">
+                                            <div class="qq-consumo-bar-current is-purchase"
+                                                 style="width:@PorcentajeCompra(item.Cantidad).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
+
+        <section class="qq-panel">
+            <div class="qq-panel-heading">
+                <div>
+                    <span class="qq-eyebrow">INVENTARIO ACTUAL</span>
+                    <h2>Estado de los productos</h2>
+                    <p class="qq-panel-description">Existencias actuales comparadas con el mínimo definido para este hogar.</p>
+                </div>
+            </div>
+
+            @if (_inventario.Count == 0)
+            {
+                <div class="qq-consumo-empty">Todavía no hay productos incorporados al inventario.</div>
+            }
+            else
+            {
+                <div class="qq-consumo-products">
+                    @foreach (var producto in _inventario.OrderBy(p => p.CantidadActual - p.CantidadMinima))
+                    {
+                        var maximo = Math.Max(producto.CantidadActual, producto.CantidadMinima);
+                        var porcentajeActual = maximo > 0
+                            ? Math.Clamp((double)(producto.CantidadActual / maximo) * 100, 0, 100)
+                            : 0;
+                        var porcentajeMinimo = maximo > 0
+                            ? Math.Clamp((double)(producto.CantidadMinima / maximo) * 100, 0, 100)
+                            : 0;
+
+                        var estado = EstadoCalculado(producto);
+                        var bajo = estado != "Disponible";
+
+                        <article class="qq-consumo-product">
+                            <div class="qq-consumo-product-head">
+                                <div>
+                                    <strong>@producto.Nombre</strong>
+                                    <span>@(string.IsNullOrWhiteSpace(producto.Categoria) ? "Sin categoría" : producto.Categoria)</span>
+                                </div>
+                                <span class="qq-consumo-status @(bajo ? "is-low" : "is-ok")">
+                                    @estado
+                                </span>
+                            </div>
+
+                            <div class="qq-consumo-bar-track">
+                                <div class="qq-consumo-bar-current @(bajo ? "is-low" : "")"
+                                     style="width:@porcentajeActual.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                                <div class="qq-consumo-bar-minimum"
+                                     style="left:@porcentajeMinimo.ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                            </div>
+                            <div class="qq-consumo-product-foot">
+                                <span>Actual: <b>@producto.CantidadActual.ToString("0.##") @producto.UnidadMedida</b></span>
+                                <span>Mínimo: <b>@producto.CantidadMinima.ToString("0.##") @producto.UnidadMedida</b></span>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="qq-consumo-note">
+            <span class="qq-consumo-note-icon">ⓘ</span>
+            <div>
+                <strong>Cómo se calcula esta información</strong>
+                <p>
+                    Las salidas corresponden a disminuciones de inventario que el sistema registra como CONSUMO.
+                    No identifican el motivo de la salida. Los resultados dependen de los movimientos que el hogar
+                    conserva: si se eliminan movimientos, las estadísticas pueden quedar incompletas.
+                </p>
+            </div>
+        </section>
+    }
+</div>
+
+<style>
+    .qq-consumo { gap: 1.25rem; }
+    .qq-consumo-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .qq-consumo .qq-stat-value { display:block; font-size:1.8rem; line-height:1.2; margin:.45rem 0; }
+    .qq-consumo .qq-stat-card p { margin:.25rem 0 0; }
+    .qq-consumo-message, .qq-consumo-empty { padding:1.4rem; color:var(--qq-muted, #687386); }
+    .qq-consumo-error { color:#a33b3b; }
+    .qq-consumo-filter-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; flex-wrap:wrap; }
+    .qq-consumo-filters { display:flex; gap:.4rem; flex-wrap:wrap; }
+    .qq-consumo-filters button { border:1px solid var(--qq-border, #e7eaf0); background:#fff; color:var(--qq-text, #202938); border-radius:9px; padding:.55rem .8rem; cursor:pointer; }
+    .qq-consumo-filters button.is-active { background:var(--qq-primary, #28734c); border-color:var(--qq-primary, #28734c); color:#fff; }
+    .qq-consumo-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2rem; }
+    .qq-consumo-columns h3 { margin:.2rem 0 1rem; font-size:1rem; }
+    .qq-consumo-ranking { display:grid; gap:1rem; }
+    .qq-consumo-ranking-head { display:flex; justify-content:space-between; align-items:center; gap:.8rem; font-size:.88rem; }
+    .qq-consumo-ranking-head strong { color:var(--qq-text, #202938); }
+    .qq-consumo-ranking-head span, .qq-consumo-muted { color:var(--qq-muted, #687386); }
+    .qq-consumo-bar-track { height:9px; margin-top:.5rem; background:#edf0f4; border-radius:20px; overflow:hidden; }
+    .qq-consumo-bar-current { height:100%; border-radius:20px; background:#df946c; }
+    .qq-consumo-bar-current.is-purchase { background:#4b9b78; }
+    .qq-consumo-products { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem 1.5rem; margin-top:1.2rem; }
+    .qq-consumo-product { min-width:0; padding:1rem; border:1px solid var(--qq-border, #e7eaf0); border-radius:14px; }
+    .qq-consumo-product-head, .qq-consumo-product-foot { display:flex; justify-content:space-between; align-items:center; gap:.75rem; }
+    .qq-consumo-product-head strong { display:block; color:var(--qq-text, #202938); }
+    .qq-consumo-product-head div span, .qq-consumo-product-foot { color:var(--qq-muted, #687386); font-size:.82rem; }
+    .qq-consumo-status { white-space:nowrap; border-radius:20px; padding:.25rem .65rem; font-size:.75rem; font-weight:600; }
+    .qq-consumo-status.is-low { color:#a64b32; background:#fff0e9; }
+    .qq-consumo-status.is-ok { color:#28734c; background:#eaf7ef; }
+    .qq-consumo-bar-minimum { position:absolute; top:-4px; height:18px; width:3px; background:#34445a; border-radius:3px; transform:translateX(-1px); }
+    .qq-consumo-product .qq-consumo-bar-track { position:relative; overflow:visible; }
+    .qq-consumo-product-foot { flex-wrap:wrap; }
+    .qq-consumo-product-foot b { color:var(--qq-text, #202938); }
+    .qq-consumo-note { display:flex; gap:.8rem; padding:1rem 1.1rem; border:1px solid #e4eaf2; border-radius:14px; background:#f7f9fc; color:#536174; }
+    .qq-consumo-note-icon { font-size:1.2rem; }
+    .qq-consumo-note strong { display:block; color:#29384c; margin-bottom:.25rem; }
+    .qq-consumo-note p { margin:0; font-size:.88rem; line-height:1.5; }
+    @@media (max-width: 900px) { .qq-consumo-summary { grid-template-columns:repeat(2,minmax(0,1fr)); } .qq-consumo-products, .qq-consumo-columns { grid-template-columns:1fr; } }
+    @@media (max-width: 520px) { .qq-consumo-summary { grid-template-columns:1fr 1fr; } .qq-consumo .qq-stat-card { padding:.9rem; } .qq-consumo .qq-stat-value { font-size:1.45rem; } }
+</style>
+
+@code {
+    private bool _cargando = true;
+    private bool _sesionActiva;
+    private int? _idHogar;
+    private string _error = string.Empty;
+    private string _periodo = "30";
+
+    private List<InventarioDto> _inventario = new();
+    private List<MovimientoConsumoDto> _movimientos = new();
+
+    private int ProductosBajoMinimo =>
+        _inventario.Count(p => p.CantidadActual <= p.CantidadMinima);
+
+    private IEnumerable<MovimientoConsumoDto> MovimientosPeriodo
+    {
+        get
+        {
+            var movimientos = _movimientos.Where(m => FechaMovimiento(m).HasValue);
+            if (_periodo == "todo")
+                return movimientos;
+
+            var dias = int.Parse(_periodo, CultureInfo.InvariantCulture);
+            var desde = DateTime.Today.AddDays(-(dias - 1));
+            return movimientos.Where(m => FechaMovimiento(m)!.Value.Date >= desde);
+        }
+    }
+
+    private decimal CantidadConsumo =>
+        MovimientosPeriodo
+            .Where(m => EsTipo(m, "CONSUMO"))
+            .Sum(m => m.Cantidad);
+
+    private int TotalOperacionesCompra =>
+        MovimientosPeriodo.Count(m => EsTipo(m, "COMPRA"));
+
+    private bool HayMovimientosPeriodo => MovimientosPeriodo.Any();
+
+    private List<ResumenProducto> ProductosMasConsumidos =>
+        Resumir("CONSUMO");
+
+    private List<ResumenProducto> ProductosMasComprados =>
+        Resumir("COMPRA");
+
+    private decimal MaximoConsumo =>
+        ProductosMasConsumidos.Count == 0 ? 0 : ProductosMasConsumidos.Max(x => x.Cantidad);
+
+    private decimal MaximoCompra =>
+        ProductosMasComprados.Count == 0 ? 0 : ProductosMasComprados.Max(x => x.Cantidad);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+
+        try
+        {
+            await Auth.InicializarAsync();
+            _sesionActiva = Auth.SesionActiva;
+
+            if (!_sesionActiva)
+                return;
+
+            _idHogar = Auth.IdHogarActivo;
+            if (!_idHogar.HasValue)
+                return;
+
+            using var respuestaHttp = await Http.GetAsync($"api/consumo?id_hogar={_idHogar.Value}");
+            var respuesta = await respuestaHttp.Content.ReadFromJsonAsync<RespuestaConsumoDto>();
+
+            if (!respuestaHttp.IsSuccessStatusCode || respuesta?.Status != "OK")
+                throw new InvalidOperationException(respuesta?.Message ?? "No fue posible consultar los datos de consumo.");
+
+            _inventario = respuesta.Inventario ?? new();
+            _movimientos = respuesta.Movimientos ?? new();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void CambiarPeriodo(string periodo)
+    {
+        _periodo = periodo;
+    }
+
+    private string ClaseFiltro(string periodo) =>
+        _periodo == periodo ? "is-active" : string.Empty;
+
+    private List<ResumenProducto> Resumir(string tipo)
+    {
+        return MovimientosPeriodo
+            .Where(m => EsTipo(m, tipo))
+            .GroupBy(m => new { m.IdProducto, m.Nombre, m.UnidadMedida })
+            .Select(g => new ResumenProducto
+            {
+                Nombre = g.Key.Nombre,
+                Unidad = g.Key.UnidadMedida ?? string.Empty,
+                Cantidad = g.Sum(x => x.Cantidad)
+            })
+            .OrderByDescending(x => x.Cantidad)
+            .Take(5)
+            .ToList();
+    }
+
+    private decimal Porcentaje(decimal cantidad) =>
+        MaximoConsumo <= 0 ? 0 : cantidad / MaximoConsumo * 100;
+
+    private decimal PorcentajeCompra(decimal cantidad) =>
+        MaximoCompra <= 0 ? 0 : cantidad / MaximoCompra * 100;
+
+    private static bool EsTipo(MovimientoConsumoDto movimiento, string tipo) =>
+        string.Equals(movimiento.TipoMovimiento, tipo, StringComparison.OrdinalIgnoreCase);
+
+    private static DateTime? FechaMovimiento(MovimientoConsumoDto movimiento)
+    {
+        if (DateTime.TryParse(movimiento.Fecha, CultureInfo.CurrentCulture,
+                DateTimeStyles.AssumeLocal, out var fecha))
+            return fecha;
+
+        if (DateTime.TryParse(movimiento.Fecha, CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeLocal, out fecha))
+            return fecha;
+
+        return null;
+    }
+
+    private sealed class RespuestaConsumoDto
+    {
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; set; }
+
+        [JsonPropertyName("movimientos")]
+        public List<MovimientoConsumoDto>? Movimientos { get; set; }
+
+        [JsonPropertyName("inventario")]
+        public List<InventarioDto>? Inventario { get; set; }
+    }
+
+    private sealed class MovimientoConsumoDto
+    {
+        [JsonPropertyName("id_movimiento")]
+        public int IdMovimiento { get; set; }
+
+        [JsonPropertyName("id_producto")]
+        public int IdProducto { get; set; }
+
+        [JsonPropertyName("nombre")]
+        public string Nombre { get; set; } = string.Empty;
+
+        [JsonPropertyName("unidad_medida")]
+        public string? UnidadMedida { get; set; }
+
+        [JsonPropertyName("tipo_movimiento")]
+        public string TipoMovimiento { get; set; } = string.Empty;
+
+        [JsonPropertyName("cantidad")]
+        public decimal Cantidad { get; set; }
+
+        [JsonPropertyName("fecha")]
+        public string Fecha { get; set; } = string.Empty;
+    }
+
+    private sealed class ResumenProducto
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string Unidad { get; set; } = string.Empty;
+        public decimal Cantidad { get; set; }
+    }
+
+    private string EstadoCalculado(InventarioDto producto)
+    {
+        if (producto.CantidadActual <= 0)
+            return "Faltante";
+
+        if (producto.CantidadActual <= producto.CantidadMinima)
+            return "Por agotarse";
+
+        return "Disponible";
+    }
+}

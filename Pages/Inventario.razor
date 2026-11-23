@@ -1,0 +1,633 @@
+
+@page "/inventario"
+@using QueQueda.Client.Services
+@inject InventarioService InventarioSvc
+@inject ProductoService ProductoSvc
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Inventario | ¿Qué Queda?</PageTitle>
+
+<div class="qq-dashboard">
+
+    <div class="qq-page-heading">
+        <div>
+            <span class="qq-eyebrow">MI HOGAR</span>
+            <h1>Inventario</h1>
+            <p>Administra los productos y las cantidades disponibles en tu hogar.</p>
+        </div>
+    </div>
+
+    @if (_cargando)
+    {
+        <div class="qq-panel">
+            <p>Consultando inventario...</p>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert">@_error</div>
+
+        <button class="qq-button qq-button-primary"
+                @onclick="CargarInventarioAsync">
+            Reintentar
+        </button>
+    }
+    else
+    {
+        <section class="qq-panel">
+
+            <div class="qq-inventory-header">
+                <div>
+                    <span class="qq-eyebrow">DESPENSA DEL HOGAR</span>
+                    <h2>@_nombreHogar</h2>
+                    <p>Consulta y administra los productos disponibles en tu hogar.</p>
+                </div>
+
+                <button class="qq-button qq-button-primary"
+                        @onclick="AbrirFormulario">
+                    + Incorporar producto
+                </button>
+            </div>
+
+            <div class="qq-inventory-summary">
+                <div class="qq-inventory-stat">
+                    <span>Productos registrados</span>
+                    <strong>@_inventario.Count</strong>
+                </div>
+
+                <div class="qq-inventory-stat">
+                    <span>Por agotarse</span>
+                    <strong>@_inventario.Count(p => EstadoCalculado(p) == "Por agotarse")</strong>
+                </div>
+
+                <div class="qq-inventory-stat">
+                    <span>Faltantes</span>
+                    <strong>@_inventario.Count(p => EstadoCalculado(p) == "Faltante")</strong>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_mensaje))
+            {
+                <div class="alert" style="margin-top:16px;">
+                    @_mensaje
+                </div>
+            }
+
+            @if (_mostrarFormulario)
+            {
+                <div class="qq-panel" style="margin-top:20px;">
+
+                    <h3>Agregar producto al inventario</h3>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin:16px 0;">
+                        <button type="button"
+                                class="@(!_crearNuevo ? "qq-button qq-button-primary" : "qq-button")"
+                                @onclick="SeleccionarExistente">
+                            Buscar en catálogo
+                        </button>
+
+                        <button type="button"
+                                class="@(_crearNuevo ? "qq-button qq-button-primary" : "qq-button")"
+                                @onclick="CrearNuevo">
+                            + Crear producto nuevo
+                        </button>
+                    </div>
+
+                    @if (!_crearNuevo)
+                    {
+                        <div class="form-field">
+                            <label>Buscar producto</label>
+                            <input type="search"
+                                   @bind="_busqueda"
+                                   placeholder="Escribe el nombre del producto..."
+                                   style="width:100%;" />
+                        </div>
+
+                        <p>
+                            Productos cargados: @_catalogo.Count |
+                            Coincidencias: @ProductosFiltrados.Count
+                        </p>
+
+                <div class="form-field">
+                    <label>Seleccionar producto</label>
+
+                    <div class="qq-product-results">
+                    @if (ProductosFiltrados.Count == 0)
+                    {
+                        @if (ProductosCoincidentes.Count > 0)
+                        {
+                            <p class="qq-product-no-results">
+                                Este producto ya está incorporado al inventario de este hogar.
+                            </p>
+                        }
+                        else
+                        {
+                            <div class="qq-product-create-prompt">
+                                <p>No encontramos «@_busqueda» en el catálogo.</p>
+                                <span>¿Quieres incorporarlo como un producto nuevo?</span>
+
+                                <button type="button"
+                                        class="qq-button qq-button-primary"
+                                        @onclick="PrepararNuevoProducto">
+                                    + Crear «@_busqueda»
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var producto in ProductosFiltrados)
+                        {
+                        <button type="button"
+                                class="qq-product-option"
+                                disabled="@_guardando"
+                                @onclick="() => GuardarProductoAsync(producto.IdProducto)">
+                            <span>@producto.Nombre</span>
+                            <small>@producto.UnidadMedida</small>
+                        </button>
+                        }
+                    }
+                </div>
+
+                </div>
+                    }
+                    else
+                    {
+                        <h4>Datos del nuevo producto</h4>
+
+                        <div class="form-field">
+                            <label>Nombre</label>
+                            <input @bind="_nuevoNombre"
+                                   placeholder="Ej. Leche" />
+                        </div>
+
+                        <div class="form-field">
+                            <label>Categoría</label>
+                            <input @bind="_nuevaCategoria"
+                                   placeholder="Ej. Lácteos" />
+                        </div>
+
+                        <div class="form-field">
+                            <label>Unidad de medida</label>
+                            <input @bind="_nuevaUnidad"
+                                   placeholder="Ej. litro, kg, unidad" />
+                        </div>
+
+                        <div class="form-field">
+                            <label>Referencia mensual de consumo</label>
+                            <input type="number"
+                                min="0.01"
+                                step="0.01"
+                                @bind="_cantidadReferencia" />
+
+                            <small class="qq-field-help">
+                                Cantidad orientativa que un hogar podría consumir durante un mes.
+                                Servirá para comparar el consumo real más adelante.
+                            </small>
+                        </div>
+                    }
+
+                    <div class="qq-inventory-form-quantities"
+                         style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
+
+                        <div class="form-field" style="flex:1; min-width:150px;">
+                            <label>Cantidad actual</label>
+                            <input type="number"
+                                   min="0"
+                                   step="0.01"
+                                   @bind="_cantidadActual" />
+                        </div>
+
+                        <div class="form-field" style="flex:1; min-width:150px;">
+                            <label>Cantidad mínima</label>
+                            <input type="number"
+                                   min="0"
+                                   step="0.01"
+                                   @bind="_cantidadMinima" />
+                        </div>
+
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_errorFormulario))
+                    {
+                        <div class="alert">
+                            @_errorFormulario
+                        </div>
+                    }
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
+
+                        <button class="qq-button qq-button-primary"
+                                @onclick="GuardarProductoAsync"
+                                disabled="@_guardando">
+                            @(_guardando ? "Guardando..." : "Guardar en inventario")
+                        </button>
+
+                        <button class="qq-button"
+                                @onclick="CerrarFormulario"
+                                disabled="@_guardando">
+                            Cancelar
+                        </button>
+
+                    </div>
+                </div>
+            }
+
+            @if (_inventario.Count == 0)
+            {
+                <div class="qq-empty-state">
+                    <div class="qq-empty-icon">📦</div>
+                    <h3>Tu inventario está vacío</h3>
+                    <p>Incorpora productos para comenzar a organizar tu hogar.</p>
+                </div>
+            }
+            else
+            {
+                <div style="overflow-x:auto; margin-top:20px;">
+
+                    <table style="width:100%; border-collapse:collapse; text-align:left;">
+
+                        <thead>
+                            <tr style="border-bottom:1px solid #e4e9e3;">
+                                <th style="padding:12px 10px;">Producto</th>
+                                <th style="padding:12px 10px;">Cantidad actual</th>
+                                <th style="padding:12px 10px;">Cantidad mínima</th>
+                                <th style="padding:12px 10px;">Estado</th>
+                                <th style="padding:12px 10px;">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var producto in _inventario)
+                            {
+                                <tr @key="producto.IdInventario"
+                                    style="border-bottom:1px solid #e4e9e3;">
+
+                                    <td style="padding:12px 10px;">
+                                        <strong>@producto.Nombre</strong>
+                                        <div style="font-size:0.85rem; color:#758078;">
+                                            @producto.Categoria
+                                        </div>
+                                    </td>
+
+                                    <td style="padding:12px 10px;">
+                                        <input type="number"
+                                               min="0"
+                                               step="0.01"
+                                               @bind="producto.CantidadActual"
+                                               style="width:90px;" />
+                                        @producto.UnidadMedida
+                                    </td>
+
+                                    <td style="padding:12px 10px;">
+                                        <input type="number"
+                                               min="0"
+                                               step="0.01"
+                                               @bind="producto.CantidadMinima"
+                                               style="width:90px;" />
+                                    </td>
+
+                                    <td style="padding:12px 10px;">
+                                        @EstadoCalculado(producto)
+                                    </td>
+
+                                    <td style="padding:12px 10px;">
+                                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+                                            <button class="qq-button qq-button-primary"
+                                                    @onclick="() => ActualizarAsync(producto)"
+                                                    disabled="@_procesando">
+                                                Guardar
+                                            </button>
+
+                                            <button class="qq-button"
+                                                    @onclick="() => RetirarAsync(producto)"
+                                                    disabled="@_procesando">
+                                                Retirar
+                                            </button>
+
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            }
+                        </tbody>
+
+                    </table>
+
+                </div>
+            }
+
+        </section>
+    }
+
+</div>
+
+@code {
+    private List<InventarioDto> _inventario = new();
+    private List<ProductoDto> _catalogo = new();
+
+    private bool _cargando = true;
+    private bool _guardando;
+    private bool _procesando;
+    private bool _mostrarFormulario;
+    private bool _crearNuevo;
+
+    private string _error = string.Empty;
+    private string _mensaje = string.Empty;
+    private string _errorFormulario = string.Empty;
+    private string _nombreHogar = string.Empty;
+    private string _busqueda = string.Empty;
+
+    private int _idHogar;
+    private int _idProductoSeleccionado;
+
+    private decimal _cantidadActual;
+    private decimal _cantidadMinima;
+    private decimal _cantidadReferencia = 1;
+
+    private string _nuevoNombre = string.Empty;
+    private string _nuevaCategoria = string.Empty;
+    private string _nuevaUnidad = "unidad";
+
+    // Productos del catálogo que coinciden con la búsqueda.
+    private List<ProductoDto> ProductosCoincidentes =>
+        _catalogo
+            .Where(p =>
+                p.Nombre.Contains(
+                    _busqueda,
+                    StringComparison.OrdinalIgnoreCase
+                ))
+            .ToList();
+
+    // Excluye los productos que ya pertenecen al inventario.
+    private List<ProductoDto> ProductosFiltrados =>
+        ProductosCoincidentes
+            .Where(p =>
+                !_inventario.Any(i => i.IdProducto == p.IdProducto)
+            )
+            .ToList();
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarInventarioAsync();
+    }
+
+    private async Task CargarInventarioAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+
+        try
+        {
+            await Auth.InicializarAsync();
+
+            if (!Auth.SesionActiva)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (!Auth.IdHogarActivo.HasValue)
+            {
+                Navigation.NavigateTo(
+                    "/seleccionar-hogar?returnUrl=%2Finventario"
+                );
+                return;
+            }
+
+            _idHogar = Auth.IdHogarActivo.Value;
+            _nombreHogar = Auth.NombreHogarActivo;
+
+            _inventario = await InventarioSvc.ObtenerInventarioAsync(_idHogar);
+            _catalogo = await ProductoSvc.ObtenerProductosAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[INVENTARIO] Error: {ex}");
+            _error = "No fue posible consultar el inventario o el catálogo.";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void AbrirFormulario()
+    {
+        _mensaje = string.Empty;
+        _errorFormulario = string.Empty;
+        _busqueda = string.Empty;
+        _idProductoSeleccionado = 0;
+        _cantidadActual = 0;
+        _cantidadMinima = 0;
+        _cantidadReferencia = 1;
+        _nuevoNombre = string.Empty;
+        _nuevaCategoria = string.Empty;
+        _nuevaUnidad = "unidad";
+        _crearNuevo = false;
+        _mostrarFormulario = true;
+    }
+
+    private void SeleccionarExistente()
+    {
+        _crearNuevo = false;
+        _errorFormulario = string.Empty;
+    }
+
+    private void CrearNuevo()
+    {
+        _crearNuevo = true;
+        _errorFormulario = string.Empty;
+    }
+
+    private void CerrarFormulario()
+    {
+        _mostrarFormulario = false;
+        _errorFormulario = string.Empty;
+    }
+
+    private async Task GuardarProductoAsync()
+    {
+        if (_guardando)
+            return;
+
+        _guardando = true;
+        _errorFormulario = string.Empty;
+        _mensaje = string.Empty;
+
+        try
+        {
+            int idProducto;
+
+            if (_cantidadActual < 0 || _cantidadMinima < 0)
+            {
+                throw new InvalidOperationException(
+                    "La referencia mensual debe ser mayor que cero."
+                );
+            }
+
+            if (_crearNuevo)
+            {
+                if (string.IsNullOrWhiteSpace(_nuevoNombre) ||
+                    string.IsNullOrWhiteSpace(_nuevaUnidad))
+                {
+                    throw new InvalidOperationException(
+                        "El nombre y la unidad de medida son obligatorios."
+                    );
+                }
+
+                if (_cantidadReferencia <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "La cantidad de referencia debe ser mayor que cero."
+                    );
+                }
+
+                var nuevoProducto = new ProductoDto
+                {
+                    Nombre = _nuevoNombre.Trim(),
+                    Categoria = string.IsNullOrWhiteSpace(_nuevaCategoria)
+                        ? null
+                        : _nuevaCategoria.Trim(),
+                    UnidadMedida = _nuevaUnidad.Trim(),
+                    Cantidad = _cantidadReferencia
+                };
+
+                var productoCreado = await ProductoSvc.CrearProductoAsync(
+                    nuevoProducto
+                );
+
+                idProducto = productoCreado.IdProducto;
+            }
+            else
+            {
+                if (_idProductoSeleccionado <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "Selecciona un producto del catálogo."
+                    );
+                }
+
+                idProducto = _idProductoSeleccionado;
+            }
+
+
+            await InventarioSvc.IncorporarProductoAsync(
+                _idHogar,
+                idProducto,
+                _cantidadActual,
+                _cantidadMinima
+            );
+
+            _mensaje = "Producto incorporado correctamente al inventario.";
+            _mostrarFormulario = false;
+
+            await RecargarDatosAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorFormulario = ex.Message;
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+
+    private async Task GuardarProductoAsync(int idProducto)
+    {
+        _crearNuevo = false;
+        _idProductoSeleccionado = idProducto;
+
+        await GuardarProductoAsync();
+    }
+
+    private async Task ActualizarAsync(InventarioDto producto)
+    {
+        if (_procesando)
+            return;
+
+        _procesando = true;
+        _mensaje = string.Empty;
+
+        try
+        {
+            await InventarioSvc.ActualizarProductoAsync(
+                producto.IdInventario,
+                producto.CantidadActual,
+                producto.CantidadMinima
+            );
+
+            _mensaje = $"Se actualizaron las cantidades de {producto.Nombre}.";
+            await RecargarDatosAsync();
+        }
+        catch (Exception ex)
+        {
+            _mensaje = ex.Message;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task RetirarAsync(InventarioDto producto)
+    {
+        if (_procesando)
+            return;
+
+        _procesando = true;
+        _mensaje = string.Empty;
+
+        try
+        {
+            await InventarioSvc.RetirarProductoAsync(producto.IdInventario);
+
+            _mensaje = $"Se retiró {producto.Nombre} del inventario.";
+            await RecargarDatosAsync();
+        }
+        catch (Exception ex)
+        {
+            _mensaje = ex.Message;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task RecargarDatosAsync()
+    {
+        _inventario = await InventarioSvc.ObtenerInventarioAsync(_idHogar);
+        _catalogo = await ProductoSvc.ObtenerProductosAsync();
+    }
+
+    private string EstadoCalculado(InventarioDto producto)
+    {
+        if (producto.CantidadActual <= 0)
+            return "Faltante";
+
+        if (producto.CantidadActual <= producto.CantidadMinima)
+            return "Por agotarse";
+
+        return "Disponible";
+    }
+
+    private void SeleccionarProducto(int idProducto)
+    {
+        _idProductoSeleccionado = idProducto;
+        _errorFormulario = string.Empty;
+    }
+
+    private void PrepararNuevoProducto()
+    {
+        _nuevoNombre = _busqueda.Trim();
+        _crearNuevo = true;
+        _idProductoSeleccionado = 0;
+        _errorFormulario = string.Empty;
+    }
+
+
+
+}

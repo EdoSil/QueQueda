@@ -1,0 +1,15 @@
+﻿@using QueQueda.Client.Shared
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteGuard RouteData="@routeData" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+
+    <NotFound>
+        <PageTitle>No encontrado</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">No existe esta página.</p>
+        </LayoutView>
+    </NotFound>
+</Router>

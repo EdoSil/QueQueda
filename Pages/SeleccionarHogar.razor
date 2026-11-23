@@ -1,0 +1,177 @@
+
+@page "/seleccionar-hogar"
+@using QueQueda.Client.Services
+@inject AuthService Auth
+@inject HogarService Hogares
+@inject NavigationManager Navigation
+
+<PageTitle>Seleccionar hogar | ¿Qué Queda?</PageTitle>
+
+<div class="qq-dashboard">
+
+    <div class="qq-page-heading">
+        <span class="qq-eyebrow">¿QUÉ QUEDA?</span>
+        <h1>Selecciona tu hogar</h1>
+        <p>Tu cuenta pertenece a más de un hogar. Elige con cuál deseas trabajar.</p>
+    </div>
+
+    @if (cargando)
+    {
+        <section class="qq-panel">
+            <p>Consultando tus hogares...</p>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <section class="qq-panel">
+            <div class="alert alert-error" role="alert">
+                @mensaje
+            </div>
+            <button class="qq-button qq-button-primary"
+                    @onclick="VolverAlInicio">
+                Volver al inicio
+            </button>
+        </section>
+    }
+    else
+    {
+        <div class="qq-hogares-lista">
+            @foreach (var hogar in hogares)
+            {
+                <section class="qq-panel qq-hogar-opcion" @key="hogar.IdHogar">
+                    <div>
+                        <h2>@hogar.Nombre</h2>
+                        <p>Perfil: @hogar.Perfil</p>
+                    </div>
+
+                    <button class="qq-button qq-button-primary"
+                            disabled="@procesando"
+                            @onclick="() => SeleccionarHogarAsync(hogar)">
+                        @(procesando ? "Seleccionando..." : "Ingresar a este hogar")
+                    </button>
+                </section>
+            }
+        </div>
+    }
+
+</div>
+
+@code {
+    private List<HogarDto> hogares = new();
+    private bool cargando = true;
+    private bool procesando;
+    private string mensaje = string.Empty;
+    private string? returnUrl;
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        ObtenerReturnUrl();
+
+        await Auth.InicializarAsync();
+
+        if (!Auth.SesionActiva)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            hogares = await Hogares.ObtenerHogaresAsync();
+
+            if (hogares.Count == 0)
+            {
+                mensaje = "No se encontraron hogares asociados a tu cuenta.";
+            }
+
+            // No seleccionamos automáticamente ningún hogar.
+            // Siempre mostramos las tarjetas para que el usuario elija.
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[SELECCION HOGAR] Error: {ex.Message}"
+            );
+
+            mensaje = "No fue posible consultar tus hogares. Inténtalo nuevamente.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+
+    private async Task SeleccionarHogarAsync(HogarDto hogar)
+    {
+        if (procesando)
+        {
+            return;
+        }
+
+        procesando = true;
+        mensaje = string.Empty;
+
+        try
+        {
+            await Auth.EstablecerHogarActivoAsync(
+                hogar.IdHogar,
+                hogar.Nombre
+            );
+
+            Console.WriteLine(
+                $"[SELECCION HOGAR] Hogar activo: {hogar.Nombre}"
+            );
+
+            Navigation.NavigateTo(
+                returnUrl ?? "/",
+                forceLoad: false
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"[SELECCION HOGAR] Error al seleccionar: {ex.Message}"
+            );
+
+            mensaje = "No fue posible seleccionar este hogar. Inténtalo nuevamente.";
+            procesando = false;
+        }
+    }
+
+    private void ObtenerReturnUrl()
+    {
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+
+        foreach (var parametro in uri.Query.TrimStart('?').Split('&'))
+        {
+            var partes = parametro.Split('=', 2);
+
+            if (partes.Length != 2 ||
+                Uri.UnescapeDataString(partes[0]) != "returnUrl")
+            {
+                continue;
+            }
+
+            var candidato = Uri.UnescapeDataString(
+                partes[1].Replace("+", " ")
+            );
+
+            if (Uri.TryCreate(candidato, UriKind.Relative, out _) &&
+                candidato.StartsWith("/") &&
+                !candidato.StartsWith("//") &&
+                !candidato.Contains('\\'))
+            {
+                returnUrl = candidato;
+            }
+
+            break;
+        }
+    }
+
+    private void VolverAlInicio()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

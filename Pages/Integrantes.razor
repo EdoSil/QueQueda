@@ -1,0 +1,515 @@
+@page "/hogar/integrantes"
+@page "/hogar/invitaciones"
+
+@using QueQueda.Client.Services
+@using Microsoft.JSInterop
+@inject HogarService Hogares
+@inject AuthService Auth
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>@(EsVistaInvitaciones ? "Invitaciones" : "Integrantes") | ¿Qué Queda?</PageTitle>
+
+<div class="qq-dashboard qq-members-page">
+
+    <!-- Encabezado según la sección seleccionada. -->
+    <header class="qq-page-heading">
+        <div>
+            @if (EsVistaInvitaciones)
+            {
+                <span class="qq-eyebrow">MI HOGAR / INVITACIONES</span>
+                <h1>Invitar a mi hogar</h1>
+                <p>Invita a otras personas para compartir y organizar este hogar.</p>
+            }
+            else
+            {
+                <span class="qq-eyebrow">MI HOGAR / INTEGRANTES</span>
+                <h1>Personas de mi hogar</h1>
+                <p>Gestiona quiénes comparten y organizan este hogar.</p>
+            }
+        </div>
+    </header>
+
+    @if (_cargando)
+    {
+        <section class="qq-panel">
+            <p>Consultando información del hogar...</p>
+        </section>
+    }
+    else if (!_sesionActiva)
+    {
+        <section class="qq-panel">
+            <h2>Inicia sesión</h2>
+            <p>Necesitas acceder para consultar la información de tu hogar.</p>
+            <a href="/login" class="qq-button qq-button-primary">
+                Iniciar sesión
+            </a>
+        </section>
+    }
+    else if (_hogar == null)
+    {
+        <section class="qq-panel">
+            <h2>No tienes un hogar asociado</h2>
+            <p>Primero debes crear o asociarte a un hogar.</p>
+            <a href="/" class="qq-button qq-button-primary">
+                Ir a mi hogar
+            </a>
+        </section>
+    }
+    else
+    {
+        @if (!EsVistaInvitaciones)
+        {
+            <!-- Resumen del hogar y cantidad de integrantes. -->
+            <section class="qq-panel qq-members-summary">
+                <div>
+                    <span class="qq-eyebrow">HOGAR ACTUAL</span>
+                    <h2>@_hogar.Nombre</h2>
+                    <p>Personas que comparten este espacio.</p>
+                </div>
+
+                <div class="qq-members-count">
+                    <span class="qq-members-count-icon">♙</span>
+                    <div>
+                        <strong>Integrantes</strong>
+
+                        @if (_errorIntegrantes != null)
+                        {
+                            <span>No disponible</span>
+                        }
+                        else
+                        {
+                            <span>@_integrantes.Count personas</span>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <!-- Listado de integrantes obtenidos desde la API. -->
+            <section class="qq-panel">
+                <div class="qq-panel-heading">
+                    <div>
+                        <span class="qq-eyebrow">MIEMBROS</span>
+                        <h2>Personas de este hogar</h2>
+                    </div>
+                </div>
+
+                @if (_errorIntegrantes != null)
+                {
+                    <div class="qq-empty-state">
+                        <span class="qq-empty-icon">!</span>
+                        <h3>No se pudo consultar el listado</h3>
+                        <p>@_errorIntegrantes</p>
+                    </div>
+                }
+                else if (_integrantes.Count == 0)
+                {
+                    <div class="qq-empty-state">
+                        <span class="qq-empty-icon">♙</span>
+                        <h3>Aún no hay integrantes</h3>
+                        <p>
+                            Todavía no existen personas asociadas a este hogar.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="qq-members-list">
+
+                        @foreach (var integrante in _integrantes)
+                        {
+                            <article class="qq-member-item"
+                                     @key="integrante.IdUsuario">
+
+                                <div class="qq-member-avatar">
+                                    @InicialNombre(integrante.Nombre)
+                                </div>
+
+                                <div class="qq-member-info">
+                                    <strong>@integrante.Nombre</strong>
+                                    <span>@integrante.Correo</span>
+                                </div>
+
+                                <div class="qq-member-role">
+                                    @if (integrante.Perfil == "administrador")
+                                    {
+                                        <span class="qq-member-badge">
+                                            Administrador
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="qq-member-badge">
+                                            Integrante
+                                        </span>
+                                    }
+                                </div>
+
+                            </article>
+                        }
+
+                    </div>
+                }
+            </section>
+        }
+
+        @if (EsVistaInvitaciones)
+        {
+            <!-- Panel para generar invitaciones. -->
+            <section class="qq-panel qq-invite-panel">
+
+                <div class="qq-invite-icon">＋</div>
+
+                <div class="qq-invite-content">
+                    <h2>¿Quieres sumar a alguien?</h2>
+                    <p>
+                        Invita a otras personas para compartir
+                        la organización de tu hogar.
+                    </p>
+                </div>
+
+                <button class="qq-button qq-button-primary"
+                        type="button"
+                        @onclick="InvitarAsync"
+                        disabled="@_generandoInvitacion">
+
+                    @(_generandoInvitacion
+                        ? "Generando..."
+                        : "Invitar integrante")
+                </button>
+
+            </section>
+
+            <!-- Resultado de la invitación generada. -->
+            @if (_invitacion != null)
+            {
+                <section class="qq-panel qq-invitation-result">
+
+                    <div class="qq-invitation-heading">
+                        <div>
+                            <span class="qq-eyebrow">INVITACIÓN GENERADA</span>
+                            <h2>¡Ya puedes invitar a alguien!</h2>
+                            <p>
+                                Comparte esta invitación para incorporar
+                                a otra persona a tu hogar.
+                            </p>
+                        </div>
+
+                        <span class="qq-invitation-status">Pendiente</span>
+                    </div>
+
+                    <div class="qq-invitation-details">
+                        <div>
+                            <strong>Hogar</strong>
+                            <span>@_hogar.Nombre</span>
+                        </div>
+
+                        <div>
+                            <strong>Vigencia</strong>
+                            <span>@_invitacion.ValidezHoras horas</span>
+                        </div>
+                    </div>
+
+                    <div class="qq-invitation-code">
+                        <span>Enlace de invitación</span>
+                        <strong>@_enlaceInvitacion</strong>
+                    </div>
+
+                    <div class="qq-invitation-actions">
+                        <button class="qq-button qq-button-primary"
+                                type="button"
+                                @onclick="CompartirInvitacionAsync">
+                            <span>Compartir invitación</span>
+                        </button>
+
+                        <button class="qq-button qq-button-secondary"
+                                type="button"
+                                @onclick="CopiarEnlaceAsync">
+                            <span>Copiar enlace</span>
+                        </button>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_mensajeInvitacion))
+                    {
+                        <p class="qq-invitation-message">
+                            @_mensajeInvitacion
+                        </p>
+                    }
+
+                </section>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_errorInvitacion))
+            {
+                <p class="qq-invitation-message">
+                    @_errorInvitacion
+                </p>
+            }
+        }
+    }
+
+</div>
+
+@code {
+
+    // Identifica la vista activa.
+    private bool EsVistaInvitaciones =>
+        Navigation.ToBaseRelativePath(Navigation.Uri)
+            .StartsWith(
+                "hogar/invitaciones",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+    // Ruta de retorno según la pantalla seleccionada.
+    private string RutaActual =>
+        EsVistaInvitaciones
+            ? "/hogar/invitaciones"
+            : "/hogar/integrantes";
+
+    // Almacena los hogares asociados al usuario autenticado.
+    private List<HogarDto> _hogares = new();
+
+    // Representa el hogar que se mostrará en esta pantalla.
+    private HogarDto? _hogar;
+
+    // Almacena los integrantes del hogar.
+    private List<IntegranteDto> _integrantes = new();
+
+    // Controla el estado de carga.
+    private bool _cargando = true;
+
+    // Indica si existe una sesión autenticada.
+    private bool _sesionActiva;
+
+    // Error al consultar integrantes.
+    private string? _errorIntegrantes;
+
+    // Controla la generación de una invitación.
+    private bool _generandoInvitacion;
+
+    // Invitación generada por la API.
+    private InvitacionDto? _invitacion;
+
+    // Error al generar invitaciones.
+    private string? _errorInvitacion;
+
+    // Enlace completo de la invitación.
+    private string? _enlaceInvitacion;
+
+    // Mensajes de compartir y copiar.
+    private string? _mensajeInvitacion;
+
+
+    // Inicializa la pantalla y consulta los datos del hogar.
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Auth.InicializarAsync();
+
+            _sesionActiva = Auth.SesionActiva;
+
+            if (!_sesionActiva)
+            {
+                return;
+            }
+
+            // Obtener los hogares asociados al usuario.
+            _hogares = await Hogares.ObtenerHogaresAsync();
+
+            // Comprobar que exista un hogar activo.
+            if (!Auth.IdHogarActivo.HasValue)
+            {
+                Navigation.NavigateTo(
+                    $"/seleccionar-hogar?returnUrl={Uri.EscapeDataString(RutaActual)}"
+                );
+                return;
+            }
+
+            // Buscar el hogar seleccionado.
+            _hogar = _hogares.FirstOrDefault(
+                h => h.IdHogar == Auth.IdHogarActivo.Value
+            );
+
+            // Comprobar que siga perteneciendo al hogar.
+            if (_hogar == null)
+            {
+                await Auth.LimpiarHogarActivoAsync();
+
+                Navigation.NavigateTo(
+                    $"/seleccionar-hogar?returnUrl={Uri.EscapeDataString(RutaActual)}"
+                );
+                return;
+            }
+
+            // Consultar integrantes del hogar activo.
+            _integrantes = await Hogares.ObtenerIntegrantesAsync(
+                _hogar.IdHogar
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[INTEGRANTES] Error: {ex}");
+
+            _errorIntegrantes =
+                "Ocurrió un problema al consultar los integrantes. " +
+                "Revisa la conexión con el servidor.";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+
+    // Obtiene la inicial del nombre para el avatar.
+    private string InicialNombre(string nombre)
+    {
+        return string.IsNullOrWhiteSpace(nombre)
+            ? "?"
+            : nombre.Trim().Substring(0, 1).ToUpper();
+    }
+
+
+    // Genera una invitación para el hogar seleccionado.
+    private async Task InvitarAsync()
+    {
+        try
+        {
+            if (_hogar == null)
+            {
+                _errorInvitacion = "No hay un hogar seleccionado.";
+                return;
+            }
+
+            // Comprueba que el usuario sea administrador.
+            if (_hogar.Perfil != "administrador")
+            {
+                _errorInvitacion =
+                    "Sólo el administrador puede invitar integrantes.";
+                return;
+            }
+
+            _generandoInvitacion = true;
+
+            _errorInvitacion = null;
+            _invitacion = null;
+
+            // Solicita a la API generar una nueva invitación.
+            _invitacion = await Hogares.CrearInvitacionAsync(
+                _hogar.IdHogar
+            );
+
+            // Construye el enlace de invitación.
+            _enlaceInvitacion =
+                $"{Navigation.BaseUri.TrimEnd('/')}/invitacion/{_invitacion.Codigo}";
+
+            _mensajeInvitacion = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[INVITACIONES] Error: {ex}");
+
+            _errorInvitacion =
+                "No fue posible generar la invitación. " +
+                "Revisa la conexión e inténtalo nuevamente.";
+        }
+        finally
+        {
+            _generandoInvitacion = false;
+        }
+    }
+
+
+    // Comparte la invitación utilizando el menú nativo.
+    private async Task CompartirInvitacionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_enlaceInvitacion))
+            return;
+
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "navigator.share",
+                new
+                {
+                    title = "Invitación a ¿Qué Queda?",
+                    text =
+                        $"¡Hola! 👋 Te invito a formar parte de nuestro hogar {_hogar?.Nombre} en ¿Qué Queda?, la aplicación para organizar y compartir el inventario de nuestra casa.\n\n" +
+                        "Para unirte:\n" +
+                        "1. Pulsa el enlace de invitación.\n" +
+                        "2. Inicia sesión o crea tu cuenta.\n" +
+                        $"3. Confirma que deseas unirte a {_hogar?.Nombre}.\n\n" +
+                        "¡Y listo! Ya podrás compartir la organización de nuestro hogar. 🏠",
+                    url = _enlaceInvitacion
+                }
+            );
+
+            _mensajeInvitacion = "Invitación compartida.";
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"[COMPARTIR] {ex.Message}");
+
+            _mensajeInvitacion =
+                "No se pudo abrir el menú de compartir. Puedes copiar el enlace.";
+        }
+    }
+
+
+    // Copia el mensaje completo de invitación al portapapeles.
+    private async Task CopiarEnlaceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_enlaceInvitacion))
+            return;
+
+        try
+        {
+            var nombreHogar = _hogar?.Nombre ?? "nuestro hogar";
+
+            var mensaje =
+                $"¡Hola! 👋 Te invito a formar parte de nuestro hogar {nombreHogar} en ¿Qué Queda?, la aplicación para organizar y compartir el inventario de nuestra casa.\n\n" +
+                "Para unirte:\n" +
+                "1. Pulsa el enlace de invitación.\n" +
+                "2. Inicia sesión o crea tu cuenta.\n" +
+                $"3. Confirma que deseas unirte a {nombreHogar}.\n\n" +
+                "¡Y listo! Ya podrás compartir la organización de nuestro hogar. 🏠\n\n" +
+                $"Ingresa aquí: {_enlaceInvitacion}";
+
+            await JS.InvokeVoidAsync(
+                "navigator.clipboard.writeText",
+                mensaje
+            );
+
+            _mensajeInvitacion =
+                "¡Mensaje de invitación copiado! Ya puedes pegarlo y compartirlo.";
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"[COPIAR ENLACE] {ex.Message}");
+
+            _mensajeInvitacion =
+                "No fue posible copiar el mensaje desde este navegador.";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += AlCambiarUbicacion;
+    }
+
+    private void AlCambiarUbicacion(
+        object? sender,
+        Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= AlCambiarUbicacion;
+    }
+
+
+}

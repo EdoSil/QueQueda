@@ -1,0 +1,449 @@
+
+@page "/historial-movimientos"
+@using QueQueda.Client.Services
+@inject ListaCompraService ListaSvc
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Historial de movimientos | ¿Qué Queda?</PageTitle>
+
+<div class="qq-dashboard">
+
+    <div class="qq-page-heading">
+        <div>
+            <span class="qq-eyebrow">MI HOGAR</span>
+            <h1>Historial de movimientos</h1>
+            <p>Consulta y administra las compras realizadas por los integrantes.</p>
+        </div>
+    </div>
+
+    @if (_cargando)
+    {
+        <section class="qq-panel">
+            <p>Consultando historial de movimientos...</p>
+        </section>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert">@_error</div>
+
+        <button class="qq-button qq-button-primary"
+                @onclick="CargarMovimientosAsync">
+            Reintentar
+        </button>
+    }
+    else
+    {
+        <section class="qq-panel">
+
+            <div class="qq-inventory-header">
+                <div>
+                    <span class="qq-eyebrow">HOGAR ACTIVO</span>
+                    <h2>@_nombreHogar</h2>
+                    <p>Registro personal de compras del hogar.</p>
+                </div>
+
+                <button class="qq-button"
+                        @onclick="CargarMovimientosAsync"
+                        disabled="@_procesando">
+                    ↻ Actualizar
+                </button>
+            </div>
+
+            @if (_movimientos.Count == 0)
+            {
+                <div class="qq-empty-state">
+                    <div class="qq-empty-icon">◷</div>
+                    <h3>Aún no hay compras registradas</h3>
+                    <p>Cuando un integrante confirme una compra, aparecerá aquí.</p>
+                </div>
+            }
+            else
+            {
+                <div style="margin-top:24px;">
+                    <span class="qq-eyebrow">FILTRAR HISTORIAL</span>
+
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;">
+
+                        <div class="form-field" style="flex:1;min-width:190px;">
+                            <label>Integrante</label>
+                            <select @bind="_idUsuarioFiltro" style="width:100%;">
+                                <option value="0">Todos los integrantes</option>
+                                @foreach (var integrante in Integrantes)
+                                {
+                                    <option value="@integrante.IdUsuario">
+                                        @integrante.NombreUsuario
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="form-field" style="flex:1;min-width:150px;">
+                            <label>Desde</label>
+                            <input type="date"
+                                   @bind="_fechaDesde"
+                                   style="width:100%;" />
+                        </div>
+
+                        <div class="form-field" style="flex:1;min-width:150px;">
+                            <label>Hasta</label>
+                            <input type="date"
+                                   @bind="_fechaHasta"
+                                   style="width:100%;" />
+                        </div>
+
+                    </div>
+
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+                        <button class="qq-button"
+                                @onclick="LimpiarFiltros">
+                            Limpiar filtros
+                        </button>
+
+                        @if (MovimientosFiltrados.Count > 0)
+                        {
+                            <button class="qq-button"
+                                    style="color:#b42318;"
+                                    @onclick="SolicitarEliminarFiltrados"
+                                    disabled="@_procesando">
+                                🗑 Eliminar resultados (@MovimientosFiltrados.Count)
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                @if (_confirmarEliminarFiltrados)
+                {
+                    <div class="qq-crud-confirm" style="margin-top:16px;">
+                        <span>
+                            ¿Eliminar definitivamente los
+                            <strong>@MovimientosFiltrados.Count movimientos</strong>
+                            que coinciden con los filtros?
+                        </span>
+
+                        <div class="qq-crud-confirm-actions">
+                            <button type="button"
+                                    class="qq-button qq-button-danger"
+                                    @onclick="EliminarFiltradosAsync"
+                                    disabled="@_procesando">
+                                Sí, eliminar
+                            </button>
+
+                            <button type="button"
+                                    class="qq-button"
+                                    @onclick="CancelarEliminar"
+                                    disabled="@_procesando">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_mensaje))
+                {
+                    <div class="alert" style="margin-top:16px;">
+                        @_mensaje
+                    </div>
+                }
+
+                <div style="margin:24px 0 12px;">
+                    <span class="qq-eyebrow">RESULTADOS</span>
+                    <h3>@MovimientosFiltrados.Count movimientos</h3>
+                </div>
+
+                @if (MovimientosFiltrados.Count == 0)
+                {
+                    <div class="qq-empty-state">
+                        <h3>No hay resultados</h3>
+                        <p>Prueba modificando los filtros.</p>
+                    </div>
+                }
+                else
+                {
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;text-align:left;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #e4e9e3;">
+                                    <th style="padding:12px 10px;">Producto</th>
+                                    <th style="padding:12px 10px;">Cantidad</th>
+                                    <th style="padding:12px 10px;">Integrante</th>
+                                    <th style="padding:12px 10px;">Fecha</th>
+                                    <th style="padding:12px 10px;">Acción</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var movimiento in MovimientosFiltrados)
+                                {
+                                    <tr @key="movimiento.IdMovimiento"
+                                        style="border-bottom:1px solid #e4e9e3;">
+
+                                        <td style="padding:12px 10px;">
+                                            <strong>@movimiento.NombreProducto</strong>
+                                        </td>
+
+                                        <td style="padding:12px 10px;">
+                                            @movimiento.Cantidad
+                                        </td>
+
+                                        <td style="padding:12px 10px;">
+                                            👤 @movimiento.NombreUsuario
+                                        </td>
+
+                                        <td style="padding:12px 10px;">
+                                            @movimiento.Fecha
+                                        </td>
+
+                                        <td style="padding:12px 10px;">
+
+                                            @if (_idEliminar == movimiento.IdMovimiento)
+                                            {
+                                                <div class="qq-crud-confirm">
+                                                    <span>¿Eliminar este movimiento?</span>
+
+                                                    <div class="qq-crud-confirm-actions">
+                                                        <button type="button"
+                                                                class="qq-button qq-button-danger"
+                                                                @onclick="() => EliminarMovimientoAsync(movimiento.IdMovimiento)"
+                                                                disabled="@_procesando">
+                                                            Sí, eliminar
+                                                        </button>
+
+                                                        <button type="button"
+                                                                class="qq-button"
+                                                                @onclick="CancelarEliminar"
+                                                                disabled="@_procesando">
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="qq-crud-action qq-crud-action-delete"
+                                                        title="Eliminar movimiento"
+                                                        aria-label="Eliminar movimiento"
+                                                        @onclick="() => SolicitarEliminar(movimiento.IdMovimiento)"
+                                                        disabled="@_procesando">
+
+                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                         width="17"
+                                                         height="17"
+                                                         viewBox="0 0 24 24"
+                                                         fill="none"
+                                                         stroke="currentColor"
+                                                         stroke-width="2"
+                                                         stroke-linecap="round"
+                                                         stroke-linejoin="round">
+                                                        <path d="M3 6h18" />
+                                                        <path d="M8 6V4h8v2" />
+                                                        <path d="m19 6-1 14H6L5 6" />
+                                                        <path d="M10 11v5" />
+                                                        <path d="M14 11v5" />
+                                                    </svg>
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+
+            <p style="margin-top:16px;color:#758078;font-size:.9rem;">
+                Se muestran los últimos 50 movimientos de compra.
+                Eliminar registros del historial no modifica las cantidades actuales del inventario.
+            </p>
+
+        </section>
+    }
+</div>
+
+@code {
+    private List<MovimientoCompraDto> _movimientos = new();
+
+    private bool _cargando = true;
+    private bool _procesando;
+    private bool _confirmarEliminarFiltrados;
+
+    private int _idHogar;
+    private int _idUsuarioFiltro;
+    private int? _idEliminar;
+
+    private string _nombreHogar = string.Empty;
+    private string _error = string.Empty;
+    private string _mensaje = string.Empty;
+
+    private DateTime? _fechaDesde;
+    private DateTime? _fechaHasta;
+
+    private List<MovimientoCompraDto> MovimientosFiltrados =>
+        _movimientos
+            .Where(m => _idUsuarioFiltro == 0 ||
+                        m.IdUsuario == _idUsuarioFiltro)
+            .Where(m => CoincideFecha(m))
+            .OrderByDescending(m => m.Fecha)
+            .ToList();
+
+    private List<MovimientoCompraDto> Integrantes =>
+        _movimientos
+            .GroupBy(m => m.IdUsuario)
+            .Select(g => g.First())
+            .OrderBy(m => m.NombreUsuario)
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarMovimientosAsync();
+    }
+
+    private async Task CargarMovimientosAsync()
+    {
+        _cargando = true;
+        _error = string.Empty;
+
+        try
+        {
+            await Auth.InicializarAsync();
+
+            if (!Auth.SesionActiva)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            if (!Auth.IdHogarActivo.HasValue)
+            {
+                Navigation.NavigateTo(
+                    "/seleccionar-hogar?returnUrl=%2Fhistorial-movimientos"
+                );
+                return;
+            }
+
+            _idHogar = Auth.IdHogarActivo.Value;
+            _nombreHogar = Auth.NombreHogarActivo;
+
+            _movimientos = await ListaSvc.ObtenerMovimientosAsync(_idHogar);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[HISTORIAL] Error: {ex}");
+            _error = "No fue posible consultar el historial de movimientos.";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private bool CoincideFecha(MovimientoCompraDto movimiento)
+    {
+        if (!DateTime.TryParseExact(
+            movimiento.Fecha,
+            "dd/MM/yyyy HH:mm",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out var fecha))
+        {
+            return false;
+        }
+
+        if (_fechaDesde.HasValue && fecha.Date < _fechaDesde.Value.Date)
+            return false;
+
+        if (_fechaHasta.HasValue && fecha.Date > _fechaHasta.Value.Date)
+            return false;
+
+        return true;
+    }
+
+    private void LimpiarFiltros()
+    {
+        _idUsuarioFiltro = 0;
+        _fechaDesde = null;
+        _fechaHasta = null;
+        _confirmarEliminarFiltrados = false;
+        _mensaje = string.Empty;
+    }
+
+    private void SolicitarEliminar(int idMovimiento)
+    {
+        _idEliminar = idMovimiento;
+        _confirmarEliminarFiltrados = false;
+    }
+
+    private void SolicitarEliminarFiltrados()
+    {
+        _idEliminar = null;
+        _confirmarEliminarFiltrados = true;
+    }
+
+    private void CancelarEliminar()
+    {
+        _idEliminar = null;
+        _confirmarEliminarFiltrados = false;
+    }
+
+    private async Task EliminarMovimientoAsync(int idMovimiento)
+    {
+        if (_procesando)
+            return;
+
+        _procesando = true;
+
+        try
+        {
+            await ListaSvc.EliminarMovimientoAsync(idMovimiento);
+            _movimientos.RemoveAll(m => m.IdMovimiento == idMovimiento);
+            _idEliminar = null;
+            _mensaje = "Movimiento eliminado correctamente.";
+        }
+        catch (Exception ex)
+        {
+            _mensaje = $"No fue posible eliminar el movimiento: {ex.Message}";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task EliminarFiltradosAsync()
+    {
+        if (_procesando)
+            return;
+
+        var ids = MovimientosFiltrados
+            .Select(m => m.IdMovimiento)
+            .ToList();
+
+        if (ids.Count == 0)
+            return;
+
+        _procesando = true;
+
+        try
+        {
+            foreach (var id in ids)
+            {
+                await ListaSvc.EliminarMovimientoAsync(id);
+            }
+
+            _movimientos.RemoveAll(m => ids.Contains(m.IdMovimiento));
+            _confirmarEliminarFiltrados = false;
+            _mensaje = $"Se eliminaron {ids.Count} movimientos correctamente.";
+        }
+        catch (Exception ex)
+        {
+            await CargarMovimientosAsync();
+            _mensaje = $"La eliminación no pudo completarse: {ex.Message}";
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+}

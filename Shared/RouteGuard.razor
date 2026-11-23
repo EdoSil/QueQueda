@@ -1,0 +1,58 @@
+@using Microsoft.AspNetCore.Components
+@using QueQueda.Client.Services
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+@if (_puedeMostrar)
+{
+    <RouteView RouteData="@RouteData" DefaultLayout="@typeof(MainLayout)" />
+}
+else
+{
+    <div style="padding:40px; text-align:center;">
+        Verificando acceso...
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RouteData RouteData { get; set; } = default!;
+
+    private bool _puedeMostrar;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _puedeMostrar = false;
+
+        var rutaActual = Navigation
+            .ToBaseRelativePath(Navigation.Uri)
+            .Split('?')[0]
+            .Trim('/');
+
+        // Rutas públicas
+        bool esPublica =
+            rutaActual.Equals("login", StringComparison.OrdinalIgnoreCase) ||
+            rutaActual.Equals("registro", StringComparison.OrdinalIgnoreCase) ||
+            rutaActual.StartsWith("invitacion/", StringComparison.OrdinalIgnoreCase);
+
+        if (esPublica)
+        {
+            _puedeMostrar = true;
+            return;
+        }
+
+        // Validar sesión para todas las demás páginas
+        await Auth.InicializarAsync();
+
+        if (Auth.SesionActiva)
+        {
+            _puedeMostrar = true;
+            return;
+        }
+
+        var destino = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var returnUrl = Uri.EscapeDataString("/" + destino.TrimStart('/'));
+
+        Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
+    }
+}

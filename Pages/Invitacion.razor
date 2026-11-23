@@ -1,0 +1,187 @@
+@page "/invitacion/{Codigo}"
+
+@using QueQueda.Client.Services
+@inject HogarService HogarService
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Invitación | ¿Qué Queda?</PageTitle>
+
+<div class="invitation-container">
+
+    @if (_cargando)
+    {
+        <h2>Estamos verificando tu invitación...</h2>
+        <p>Un momento, por favor.</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <h2>No fue posible validar la invitación</h2>
+        <p>@_error</p>
+    }
+    else if (_invitacion != null)
+    {
+        @if (_aceptada)
+        {
+            <div class="invitation-success-card">
+
+                <div class="invitation-success-icon">
+                    <span>✓</span>
+                </div>
+
+                @if (_yaPertenecia)
+                {
+                    <h2>¡Bienvenido nuevamente!</h2>
+                }
+                else
+                {
+                    <h2>¡Ya eres parte del hogar!</h2>
+                }
+
+                <h1>@_invitacion.NombreHogar</h1>
+
+                @if (_yaPertenecia)
+                {
+                    <p>
+                        Ya formas parte de este hogar.
+                        Puedes seguir compartiendo y organizando este hogar.
+                    </p>
+                }
+                else
+                {
+                    <p>
+                        Te has incorporado correctamente.
+                        Ahora puedes compartir y organizar este hogar.
+                    </p>
+                }
+
+                <div class="invitation-success-info">
+                    <span>♧</span>
+                    <strong>Ya eres integrante de este hogar</strong>
+                </div>
+
+            </div>
+        }
+        else if (!_invitacion.Vigente)
+        {
+            <h2>Invitación no disponible</h2>
+            <h1>@_invitacion.NombreHogar</h1>
+            <p>Esta invitación ya no se encuentra vigente.</p>
+        }
+        else if (Auth.SesionActiva)
+        {
+            <h2>Estamos incorporándote al hogar...</h2>
+            <h1>@_invitacion.NombreHogar</h1>
+
+            @if (!string.IsNullOrWhiteSpace(_mensajeAceptacion))
+            {
+                <p>@_mensajeAceptacion</p>
+            }
+        }
+        else
+        {
+            <h2>¡Te han invitado!</h2>
+            <p>Te invitaron a formar parte de este hogar:</p>
+            <h1>@_invitacion.NombreHogar</h1>
+            <p>La invitación se encuentra vigente.</p>
+
+            <p>Para incorporarte, primero necesitas identificarte.</p>
+
+            <p>
+                <a href="@RegistroUrl">Crear una cuenta</a>
+            </p>
+
+            <p>
+                ¿Ya tienes cuenta?
+                <a href="@LoginUrl">Iniciar sesión</a>
+            </p>
+        }
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public string? Codigo { get; set; }
+
+    private InvitacionConsultaDto? _invitacion;
+
+    private bool _cargando = true;
+    private bool _aceptada = false;
+    private bool _yaPertenecia = false;
+    private bool _procesandoAceptacion = false;
+
+    private string? _error;
+    private string? _mensajeAceptacion;
+
+    private string ReturnUrl =>
+        $"/invitacion/{Uri.EscapeDataString(Codigo ?? "")}";
+
+    private string LoginUrl =>
+        $"/login?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+
+    private string RegistroUrl =>
+        $"/registro?returnUrl={Uri.EscapeDataString(ReturnUrl)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _cargando = true;
+        _error = null;
+        _invitacion = null;
+        _aceptada = false;
+        _mensajeAceptacion = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Codigo))
+            {
+                _error = "No se recibió un código de invitación.";
+                return;
+            }
+
+            _invitacion = await HogarService.ConsultarInvitacionAsync(
+                Codigo
+            );
+
+            if (_invitacion.Vigente && Auth.SesionActiva)
+            {
+                await ProcesarAceptacionAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task ProcesarAceptacionAsync()
+    {
+        if (_procesandoAceptacion || _aceptada)
+            return;
+
+        _procesandoAceptacion = true;
+
+        try
+        {
+            var resultado = await HogarService.AceptarInvitacionAsync(
+                Codigo!
+            );
+
+           _yaPertenecia = resultado.Mensaje == "Ya perteneces a este hogar";
+            _aceptada = true;
+            _mensajeAceptacion = resultado.Mensaje;
+        }
+        catch (Exception ex)
+        {
+            _mensajeAceptacion = ex.Message;
+        }
+        finally
+        {
+            _procesandoAceptacion = false;
+        }
+    }
+}

@@ -1,0 +1,110 @@
+﻿
+@inherits LayoutComponentBase
+@implements IDisposable
+
+@using QueQueda.Client.Services
+
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+<div class="page">
+
+    <!-- Menú lateral de navegación. -->
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <!-- Contenido principal. -->
+    <main>
+
+        <!-- Encabezado compartido por todas las páginas. -->
+        <header class="top-row px-4">
+
+            <!-- Nombre de la aplicación. -->
+            <a href="/" class="brand-link">
+                ¿Qué Queda?
+            </a>
+
+            <!-- Estado de autenticación y acciones del usuario. -->
+            <div class="session-area">
+
+                @if (Auth.SesionActiva)
+                {
+                    <!-- Indicador visual de sesión activa. -->
+                    <span class="session-indicator">
+                        <span class="session-dot"></span>
+                        Sesión activa
+                    </span>
+
+                    <!-- Saludo personalizado. -->
+                    <span class="session-name">
+                        ¡Hola, @(string.IsNullOrWhiteSpace(Auth.Nombre)
+                            ? "Mi hogar"
+                            : Auth.Nombre)!
+                    </span>
+
+                    <!-- Botón global rojo para cerrar sesión. -->
+                    <button class="btn-danger"
+                            type="button"
+                            @onclick="CerrarSesionAsync">
+                        Cerrar sesión
+                    </button>
+                }
+                else
+                {
+                    <!-- Botón global verde para iniciar sesión. -->
+                    <a href="/login" class="btn-success">
+                        Iniciar sesión
+                    </a>
+                }
+
+            </div>
+        </header>
+
+        <!-- Contenido de la página actual. -->
+        <article class="content px-4">
+            @Body
+        </article>
+
+    </main>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("[LAYOUT] Inicialización de MainLayout.");
+
+        Auth.OnChange += ActualizarInterfaz;
+
+        Console.WriteLine("[LAYOUT] Suscripción a OnChange registrada.");
+
+        await Auth.InicializarAsync();
+
+        Console.WriteLine(
+            $"[LAYOUT] Inicialización terminada. SesionActiva={Auth.SesionActiva}");
+    }
+
+    private void ActualizarInterfaz()
+    {
+        Console.WriteLine(
+            $"[LAYOUT] Cambio de sesión recibido. SesionActiva={Auth.SesionActiva}");
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CerrarSesionAsync()
+    {
+        Console.WriteLine("[LAYOUT] Solicitud de cierre de sesión.");
+
+        await Auth.CerrarSesionAsync();
+
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        Auth.OnChange -= ActualizarInterfaz;
+
+        Console.WriteLine("[LAYOUT] Suscripción a OnChange eliminada.");
+    }
+}

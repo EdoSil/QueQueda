@@ -1,0 +1,632 @@
+@page "/listas-compra"
+@using QueQueda.Client.Services
+@inject ListaCompraService ListaSvc
+@inject ProductoService ProductoSvc
+@inject AuthService Auth
+@inject NavigationManager Navigation
+
+<PageTitle>Lista de compras | ¿Qué Queda?</PageTitle>
+
+<div class="qq-dashboard">
+    <div class="qq-page-heading">
+        <div>
+            <span class="qq-eyebrow">MI HOGAR</span>
+            <h1>Lista de compras</h1>
+            <p>Organiza los productos que necesitas comprar y coordina las compras del hogar.</p>
+        </div>
+    </div>
+
+    @if (_cargando)
+    {
+        <div class="qq-panel"><p>Cargando listas de compras...</p></div>
+    }
+    else if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <div class="alert">@_error</div>
+        <button class="qq-button qq-button-primary" @onclick="CargarAsync">Reintentar</button>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_mensaje))
+        {
+            <div class="alert" style="margin-bottom:16px;">@_mensaje</div>
+        }
+
+        <section class="qq-panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;">
+                <div>
+                    <span class="qq-eyebrow">HOGAR ACTIVO</span>
+                    <h2 style="margin:4px 0;">@_nombreHogar</h2>
+                    <p style="margin:0;">Tus listas de compras compartidas.</p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="qq-button qq-button-generate"
+                            @onclick="GenerarDesdeInventarioAsync"
+                            disabled="@_procesando">
+                        <span class="qq-wand-icon">🪄</span>
+                        Generar desde inventario
+                    </button>
+                    <button class="qq-button qq-button-primary" @onclick="AbrirCrearLista">
+                        + Nueva lista
+                    </button>
+                </div>
+            </div>
+
+            @if (_mostrarCrearLista)
+            {
+                <div class="qq-panel" style="margin-top:18px;">
+                    <h3>Nueva lista</h3>
+                    <div class="form-field">
+                        <label>Nombre de la lista</label>
+                        <input @bind="_nombreNuevaLista" placeholder="Ej. Compra semanal" />
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                        <button class="qq-button qq-button-primary" @onclick="CrearListaAsync" disabled="@_procesando">
+                            Crear lista
+                        </button>
+                        <button class="qq-button" @onclick="() => _mostrarCrearLista = false">Cancelar</button>
+                    </div>
+                </div>
+            }
+
+            @if (_listas.Count == 0)
+            {
+                <div class="qq-empty-state">
+                    <div class="qq-empty-icon">🛒</div>
+                    <h3>Aún no tienes listas de compras</h3>
+                    <p>Crea una lista o genera una con los productos que necesitan reposición.</p>
+                </div>
+            }
+            else
+            {
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:20px;">
+                    @foreach (var lista in _listas)
+                    {
+                        <div @key="lista.IdLista"
+                            class="qq-list-card"
+                            style="border-color:@(_listaSeleccionada?.IdLista == lista.IdLista ? "#456e50" : "#e4e9e3");">
+
+                            <button type="button"
+                                    class="qq-list-card-open"
+                                    @onclick="() => AbrirListaAsync(lista.IdLista)">
+
+                                <div class="qq-list-card-title">
+                                    <strong>@(lista.Nombre == "Reposición de inventario" ? "🪄 " : "")@lista.Nombre</strong>
+
+                                    @if (lista.Nombre == "Reposición de inventario")
+                                    {
+                                        <span class="qq-list-auto-label">AUTOMÁTICA</span>
+                                    }
+                                </div>
+
+                                <div class="qq-list-card-info">
+                                    @lista.ProductosComprados de @lista.TotalProductos productos comprados
+                                </div>
+                                <div class="qq-list-card-status">
+                                    Estado: @(lista.TotalProductos > 0 &&
+                                            lista.ProductosComprados == lista.TotalProductos
+                                            ? "COMPLETADA"
+                                            : "PENDIENTE")
+                                </div>
+                            </button>
+
+                            @if (_idListaPendienteEliminar == lista.IdLista)
+                            {
+                                <div class="qq-list-delete-confirm">
+                                    <span>¿Eliminar esta lista?</span>
+                                    <div>
+                                        <button class="qq-button qq-button-danger"
+                                                @onclick="() => EliminarListaAsync(lista.IdLista)"
+                                                @onclick:stopPropagation="true"
+                                                disabled="@_procesando">
+                                            Sí, eliminar
+                                        </button>
+                                        <button class="qq-button"
+                                                @onclick="CancelarEliminarLista"
+                                                @onclick:stopPropagation="true">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="qq-list-delete"
+                                        title="Eliminar lista"
+                                        aria-label="Eliminar lista"
+                                        @onclick="() => SolicitarEliminarLista(lista.IdLista)"
+                                        @onclick:stopPropagation="true">
+                                    <span aria-hidden="true">🗑️</span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+     
+
+
+        @if (_listaSeleccionada is not null)
+        {
+            <section class="qq-panel" style="margin-top:20px;">
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+                    <div>
+                        <span class="qq-eyebrow">DETALLE DE LA LISTA</span>
+                        <h2 style="margin:4px 0;">@_listaSeleccionada.Nombre</h2>
+                    </div>
+                    <button class="qq-button" @onclick="CerrarDetalle">Cerrar</button>
+                </div>
+
+            <div class="qq-panel" style="margin-top:16px;">
+                <h3>Agregar producto</h3>
+
+                <div class="form-field">
+                    <label>Producto del catálogo</label>
+                    <select @bind="_idProductoSeleccionado">
+                        <option value="0">Selecciona un producto</option>
+                        @foreach (var producto in ProductosDisponibles)
+                        {
+                            <option value="@producto.IdProducto">
+                                @producto.Nombre (@producto.UnidadMedida)
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-field" style="max-width:220px;margin-top:10px;">
+                    <label>Cantidad</label>
+                    <input type="number" min="0.01" step="0.01"
+                        @bind="_cantidadAgregar" />
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+                    <button class="qq-button qq-button-primary"
+                            @onclick="AgregarProductoAsync"
+                            disabled="@_procesando">
+                        Agregar a la lista
+                    </button>
+
+                    <button class="qq-button"
+                            @onclick="() => _mostrarCrearProductoNuevo = !_mostrarCrearProductoNuevo">
+                        + Crear producto nuevo
+                    </button>
+                </div>
+
+                @if (_mostrarCrearProductoNuevo)
+                {
+                    <div style="margin-top:18px;padding-top:16px;border-top:1px solid #e4e9e3;">
+                        <h4>Datos del nuevo producto</h4>
+
+                        <div class="form-field">
+                            <label>Nombre</label>
+                            <input @bind="_nuevoProductoNombre"
+                                placeholder="Ej. Yogur natural" />
+                        </div>
+
+                        <div class="form-field">
+                            <label>Categoría</label>
+                            <input @bind="_nuevaCategoria"
+                                placeholder="Ej. Lácteos" />
+                        </div>
+
+                        <div class="form-field">
+                            <label>Unidad de medida</label>
+                            <input @bind="_nuevaUnidad"
+                                placeholder="Ej. unidad, litro, kilo" />
+                        </div>
+
+                        <div class="form-field" style="max-width:220px;">
+                            <label>Cantidad para esta lista</label>
+                            <input type="number" min="0.01" step="0.01"
+                                @bind="_cantidadAgregar" />
+                        </div>
+
+                        <button class="qq-button qq-button-primary"
+                                @onclick="CrearProductoYAgregarListaAsync"
+                                disabled="@_procesando">
+                            Crear y agregar a la lista
+                        </button>
+                    </div>
+                }
+            </div>
+
+                @if (_productosLista.Count == 0)
+                {
+                    <div class="qq-empty-state">
+                        <div class="qq-empty-icon">📋</div>
+                        <h3>Esta lista todavía no tiene productos</h3>
+                        <p>Agrega productos del catálogo para comenzar.</p>
+                    </div>
+                }
+                else
+                {
+                    <div style="overflow-x:auto;margin-top:18px;">
+                        <table style="width:100%;border-collapse:collapse;text-align:left;">
+                            <thead>
+                                <tr style="border-bottom:1px solid #e4e9e3;">
+                                    <th style="padding:12px 8px;">Producto</th>
+                                    <th style="padding:12px 8px;">Cantidad</th>
+                                    <th style="padding:12px 8px;">Estado</th>
+                                    <th style="padding:12px 8px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in _productosLista)
+                                {
+                                    <tr @key="item.IdDetalle" style="border-bottom:1px solid #e4e9e3;">
+                                        <td style="padding:12px 8px;">
+                                            <strong>@item.Nombre</strong>
+                                            <div style="font-size:.85rem;color:#758078;">@item.Categoria</div>
+                                            @if (item.Comprado == 1)
+                                            {
+                                                <div style="margin-top:7px;">
+                                                    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 9px;background:#e8f2ea;color:#356b46;border-radius:6px;font-size:.82rem;font-weight:600;">
+                                                        <span aria-hidden="true">👤</span>
+                                                        @if (!string.IsNullOrWhiteSpace(item.NombreComprador))
+                                                        {
+                                                            <span>Comprado por @item.NombreComprador</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>Comprado por usuario #@item.IdUsuarioCompra</span>
+                                                        }
+                                                    </span>
+                                                </div>
+                                            }
+                                        </td>
+                                        <td style="padding:12px 8px;">
+                                            @if (item.Comprado == 0)
+                                            {
+                                                <input type="number" min="0.01" step="0.01"
+                                                       @bind="item.Cantidad" style="width:90px;" />
+                                                <span>@item.UnidadMedida</span>
+                                            }
+                                            else
+                                            {
+                                                @item.Cantidad @item.UnidadMedida
+                                            }
+                                        </td>
+                                        <td style="padding:12px 8px;">
+                                            @(item.Comprado == 1 ? "Comprado" : "Pendiente")
+                                        </td>
+                                        <td style="padding:12px 8px;">
+                                            @if (item.Comprado == 0)
+                                            {
+                                                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                                    <button class="qq-button" @onclick="() => ActualizarCantidadAsync(item)" disabled="@_procesando">Guardar</button>
+                                                    <button class="qq-button qq-button-primary" @onclick="() => ConfirmarCompraAsync(item)" disabled="@_procesando">Comprado</button>
+                                                    <button class="qq-button" @onclick="() => RetirarProductoAsync(item)" disabled="@_procesando">Quitar</button>
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        }
+    }
+</div>
+
+@code {
+    private List<ListaCompraDto> _listas = new();
+    private List<ListaCompraProductoDto> _productosLista = new();
+    private List<ProductoDto> _catalogo = new();
+    private ListaCompraDto? _listaSeleccionada;
+
+    private bool _cargando = true;
+    private bool _procesando;
+    private bool _mostrarCrearLista;
+    private int _idHogar;
+    private int _idProductoSeleccionado;
+    private decimal _cantidadAgregar = 1;
+    private bool _mostrarCrearProductoNuevo;
+    private string _nuevoProductoNombre = "";
+    private string _nuevaCategoria = "";
+    private string _nuevaUnidad = "unidad";
+    
+    private string _nombreHogar = "";
+    private string _nombreNuevaLista = "";
+    private string _error = "";
+    private string _mensaje = "";
+
+    private int? _idListaPendienteEliminar;
+
+
+    private IEnumerable<ProductoDto> ProductosDisponibles =>
+        _catalogo.Where(p => !_productosLista.Any(d => d.IdProducto == p.IdProducto));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        _error = "";
+        try
+        {
+            await Auth.InicializarAsync();
+            if (!Auth.SesionActiva)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+            if (!Auth.IdHogarActivo.HasValue)
+            {
+                Navigation.NavigateTo("/seleccionar-hogar?returnUrl=%2Flistas-compra");
+                return;
+            }
+
+            _idHogar = Auth.IdHogarActivo.Value;
+            _nombreHogar = Auth.NombreHogarActivo;
+            _listas = await ListaSvc.ObtenerListasAsync(_idHogar);
+            _catalogo = await ProductoSvc.ObtenerProductosAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[LISTA COMPRA] {ex}");
+            _error = ex.Message;
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void AbrirCrearLista()
+    {
+        _nombreNuevaLista = "";
+        _mostrarCrearLista = true;
+        _mensaje = "";
+    }
+
+    private async Task CrearListaAsync()
+    {
+        if (_procesando) return;
+        if (string.IsNullOrWhiteSpace(_nombreNuevaLista))
+        {
+            _mensaje = "Escribe un nombre para la lista.";
+            return;
+        }
+        _procesando = true;
+        try
+        {
+            var id = await ListaSvc.CrearListaAsync(_idHogar, _nombreNuevaLista.Trim());
+            _mostrarCrearLista = false;
+            _mensaje = "Lista creada correctamente.";
+            await RecargarListasAsync();
+            await AbrirListaAsync(id);
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private async Task GenerarDesdeInventarioAsync()
+    {
+        if (_procesando) return;
+        _procesando = true;
+        _mensaje = "";
+        try
+        {
+            var resultado = await ListaSvc.GenerarDesdeInventarioAsync(_idHogar);
+            _mensaje = resultado.Mensaje ?? "Proceso finalizado.";
+            if (resultado.IdLista.HasValue)
+            {
+                await RecargarListasAsync();
+                await AbrirListaAsync(resultado.IdLista.Value);
+            }
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private async Task RecargarListasAsync()
+    {
+        _listas = await ListaSvc.ObtenerListasAsync(_idHogar);
+    }
+
+    private async Task AbrirListaAsync(int idLista)
+    {
+        try
+        {
+            var respuesta = await ListaSvc.ObtenerListaAsync(idLista);
+            _listaSeleccionada = respuesta.Lista;
+            _productosLista = respuesta.Productos ?? new();
+            _idProductoSeleccionado = 0;
+            _cantidadAgregar = 1;
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+    }
+
+    private async Task AgregarProductoAsync()
+    {
+        if (_procesando) return;
+        if (_idProductoSeleccionado <= 0 || _cantidadAgregar <= 0)
+        {
+            _mensaje = "Selecciona un producto e indica una cantidad válida.";
+            return;
+        }
+        _procesando = true;
+        try
+        {
+            await ListaSvc.AgregarProductoAsync(_listaSeleccionada!.IdLista, _idProductoSeleccionado, _cantidadAgregar);
+            _mensaje = "Producto agregado a la lista.";
+            await AbrirListaAsync(_listaSeleccionada.IdLista);
+            await RecargarListasAsync();
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+
+    private async Task CrearProductoYAgregarListaAsync()
+    {
+        if (_procesando)
+            return;
+
+        if (string.IsNullOrWhiteSpace(_nuevoProductoNombre) ||
+            string.IsNullOrWhiteSpace(_nuevaUnidad))
+        {
+            _mensaje = "El nombre y la unidad de medida son obligatorios.";
+            return;
+        }
+
+        if (_cantidadAgregar <= 0)
+        {
+            _mensaje = "La cantidad debe ser mayor que cero.";
+            return;
+        }
+
+        _procesando = true;
+        _mensaje = "";
+
+        try
+        {
+            var nuevoProducto = new ProductoDto
+            {
+                Nombre = _nuevoProductoNombre.Trim(),
+                Categoria = string.IsNullOrWhiteSpace(_nuevaCategoria)
+                    ? null
+                    : _nuevaCategoria.Trim(),
+                UnidadMedida = _nuevaUnidad.Trim(),
+                Cantidad = 1
+            };
+
+            var productoCreado = await ProductoSvc.CrearProductoAsync(nuevoProducto);
+
+            await ListaSvc.AgregarProductoAsync(
+                _listaSeleccionada!.IdLista,
+                productoCreado.IdProducto,
+                _cantidadAgregar
+            );
+
+            _mensaje = "Producto creado y agregado a la lista correctamente.";
+
+            _mostrarCrearProductoNuevo = false;
+            _nuevoProductoNombre = "";
+            _nuevaCategoria = "";
+            _nuevaUnidad = "unidad";
+            _cantidadAgregar = 1;
+
+            _catalogo = await ProductoSvc.ObtenerProductosAsync();
+
+            await AbrirListaAsync(_listaSeleccionada.IdLista);
+            await RecargarListasAsync();
+        }
+        catch (Exception ex)
+        {
+            _mensaje = ex.Message;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+    private async Task ActualizarCantidadAsync(ListaCompraProductoDto item)
+    {
+        if (_procesando) return;
+        _procesando = true;
+        try
+        {
+            await ListaSvc.ActualizarCantidadAsync(item.IdDetalle, item.Cantidad);
+            _mensaje = "Cantidad actualizada.";
+            await AbrirListaAsync(_listaSeleccionada!.IdLista);
+            await RecargarListasAsync();
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private async Task RetirarProductoAsync(ListaCompraProductoDto item)
+    {
+        if (_procesando) return;
+        _procesando = true;
+        try
+        {
+            await ListaSvc.RetirarProductoAsync(item.IdDetalle);
+            _mensaje = "Producto retirado de la lista.";
+            await AbrirListaAsync(_listaSeleccionada!.IdLista);
+            await RecargarListasAsync();
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private async Task ConfirmarCompraAsync(ListaCompraProductoDto item)
+    {
+        if (_procesando) return;
+        if (item.Cantidad <= 0)
+        {
+            _mensaje = "La cantidad comprada debe ser mayor que cero.";
+            return;
+        }
+        _procesando = true;
+        try
+        {
+            await ListaSvc.ConfirmarCompraAsync(item.IdDetalle, item.Cantidad);
+            _mensaje = "Compra registrada e inventario actualizado.";
+            await AbrirListaAsync(_listaSeleccionada!.IdLista);
+            await RecargarListasAsync();
+        }
+        catch (Exception ex) { _mensaje = ex.Message; }
+        finally { _procesando = false; }
+    }
+
+    private void CerrarDetalle()
+    {
+        _listaSeleccionada = null;
+        _productosLista.Clear();
+    }
+
+    private void SolicitarEliminarLista(int idLista)
+    {
+        _idListaPendienteEliminar = idLista;
+    }
+
+    private void CancelarEliminarLista()
+    {
+        _idListaPendienteEliminar = null;
+    }
+
+    private async Task EliminarListaAsync(int idLista)
+    {
+        if (_procesando) return;
+
+        _procesando = true;
+        _mensaje = "";
+
+        try
+        {
+            await ListaSvc.EliminarListaAsync(idLista);
+
+            if (_listaSeleccionada?.IdLista == idLista)
+            {
+                _listaSeleccionada = null;
+                _productosLista.Clear();
+            }
+
+            _idListaPendienteEliminar = null;
+            _mensaje = "Lista eliminada correctamente.";
+
+            await RecargarListasAsync();
+        }
+        catch (Exception ex)
+        {
+            _mensaje = ex.Message;
+        }
+        finally
+        {
+            _procesando = false;
+        }
+    }
+
+   
+
+}

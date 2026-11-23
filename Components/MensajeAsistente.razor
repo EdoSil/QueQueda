@@ -1,0 +1,175 @@
+
+@using QueQueda.Client.Models
+
+@if (Mensaje.EsUsuario)
+{
+    <div class="qq-chat-message qq-chat-message-user">
+        <p>@Mensaje.Texto</p>
+    </div>
+}
+else if (Mensaje.Tipo == "inventario")
+{
+    <div class="qq-chat-message qq-chat-message-assistant">
+        <span class="qq-chat-message-label">ASISTENTE IA</span>
+        <section class="qq-response-card">
+            <h3>@Mensaje.Titulo</h3>
+            <div class="qq-response-items">
+                @foreach (var item in Mensaje.Elementos)
+                {
+                    <div class="qq-response-item">
+                        <span class="qq-response-item-name">@item.Nombre</span>
+                        <span class="qq-response-item-quantity">
+                            @FormatoCantidad(item.Cantidad) @FormatoUnidad(item)
+                        </span>
+                    </div>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Mensaje.Pie))
+            {
+                <div class="qq-response-footer">📋 @Mensaje.Pie</div>
+            }
+        </section>
+    </div>
+}
+else if (Mensaje.Tipo == "confirmar_agregar")
+{
+    <div class="qq-chat-message qq-chat-message-assistant">
+        <span class="qq-chat-message-label">ASISTENTE IA</span>
+        <p style="white-space: pre-line">@Mensaje.Texto</p>
+
+        <div class="qq-confirmacion-producto">
+            <button class="qq-confirmacion-si"
+                    @onclick="() => OnConfirmarAgregar.InvokeAsync(Mensaje.ProductoPendiente)">
+                Sí, agregar
+            </button>
+
+            <button class="qq-confirmacion-no"
+                    @onclick="OnCancelarAgregar">
+                Ahora no
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <div class="qq-chat-message qq-chat-message-assistant">
+        <span class="qq-chat-message-label">ASISTENTE IA</span>
+        @if (!string.IsNullOrWhiteSpace(Mensaje.Titulo))
+        {
+            <strong>@Mensaje.Titulo</strong>
+        }
+        <p style="white-space: pre-line">@Mensaje.Texto</p>
+    </div>
+}
+
+<style>
+    .qq-response-card {
+        margin-top: 8px;
+        padding: 14px;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+        color: #202124;
+    }
+
+    .qq-response-card h3 {
+        margin: 0 0 12px;
+        font-size: 1rem;
+        font-weight: 650;
+    }
+
+    .qq-response-items {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .qq-response-item {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 10px 0;
+        border-bottom: 1px solid #edf0f2;
+        min-width: 0;
+    }
+
+    .qq-response-item:last-child {
+        border-bottom: 0;
+    }
+
+    .qq-response-item-name {
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .qq-response-item-quantity {
+        font-weight: 600;
+        white-space: nowrap;
+        font-size: .92rem;
+    }
+
+    .qq-response-footer {
+        border-top: 1px solid #edf0f2;
+        padding-top: 11px;
+        margin-top: 4px;
+        color: #5f6368;
+        font-size: .85rem;
+    }
+
+    .qq-confirmacion-producto {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .qq-confirmacion-producto button {
+        padding: 9px 16px;
+        border-radius: 9px;
+        border: 1px solid #d1d5db;
+        cursor: pointer;
+    }
+
+    .qq-confirmacion-si {
+        background: #2563eb;
+        color: white;
+        border-color: #2563eb !important;
+    }
+
+    .qq-confirmacion-no {
+        background: white;
+        color: #374151;
+    }
+</style>
+
+@code {
+    [Parameter, EditorRequired]
+    public MensajeChat Mensaje { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<string> OnConfirmarAgregar { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelarAgregar { get; set; }
+
+    private static string FormatoCantidad(decimal cantidad) =>
+        cantidad.ToString("0.##");
+
+    private static string FormatoUnidad(DetalleMensaje item)
+    {
+        var unidad = item.Unidad.Trim();
+        if (string.IsNullOrWhiteSpace(unidad)) return "";
+
+        if (unidad.Equals("unidad", StringComparison.OrdinalIgnoreCase))
+            return item.Cantidad == 1 ? "unidad" : "unidades";
+
+        if (unidad.Equals("kilo", StringComparison.OrdinalIgnoreCase) ||
+            unidad.Equals("kilos", StringComparison.OrdinalIgnoreCase))
+            return item.Cantidad == 1 ? "kilo" : "kilos";
+
+        if (unidad.Equals("litro", StringComparison.OrdinalIgnoreCase))
+            return item.Cantidad == 1 ? "litro" : "litros";
+
+        return unidad;
+    }
+}
